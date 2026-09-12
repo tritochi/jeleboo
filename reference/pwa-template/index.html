@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!--
+      Adapted from augy-studios/pwa-template (MIT) — see README.md in this folder.
+      The original's Google Analytics + Google AdSense tags are intentionally
+      NOT carried over — they belonged to the template author's own accounts.
+      Add Jeleboo's own analytics here later if wanted; don't add AdSense.
+    -->
+
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta charset="utf-8">
+    <title>Jeleboo — Malaysia Air Quality</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Live air quality and haze readings for Malaysia, with notifications when your threshold is crossed.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Jeleboo — Malaysia Air Quality" />
+    <meta property="og:site_name" content="Jeleboo" />
+    <meta property="og:description" content="Live air quality and haze readings for Malaysia, with notifications when your threshold is crossed." />
+
+    <meta name="theme-color" content="PLACEHOLDER — set from design.md" />
+
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:image:src" content="/icons/icon-512.png">
+    <meta property="og:image" content="/icons/icon-512.png" />
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- Vite's dev server injects the module script automatically in dev;
+         this line is what Vite expects to find and replace at build time. -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+
+</html>

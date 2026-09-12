@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+*.local-node_modules/
+
+# Bun
+bun.lockb
+
+# Build output
+app/dist/
+app/build/
+server/dist/
+
+# Environment files — never commit secrets
+.env.local
+.env
+.env.*
+!.env.example
+
+# SQLite database files
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel / render artifacts
+.vercel/
+.vercel_build_output
+
+# Local dev-server logs
+vite-dev.log
+vite-dev.err.log

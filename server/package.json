@@ -1,0 +1,24 @@
+{
+  "name": "jeleboo-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/server.ts",
+    "start": "bun src/server.ts",
+    "build": "echo 'Bun backend — no build step needed'",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/web-push": "^3.6.4",
+    "bun-types": "^1.1.34"
+  },
+  "engines": {
+    "bun": ">=1.0"
+  }
+}

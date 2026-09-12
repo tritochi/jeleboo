@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-MY">
+
+<head>
+    <!--
+      Adapted from augy-studios/pwa-template (MIT) — see reference/pwa-template/README.md.
+      The original's audience-tracking and advertising tags belonged to the
+      template author's own accounts and are intentionally NOT carried over.
+      Add Jeleboo's own tracking here later if wanted; don't add advertising IDs.
+    -->
+
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta charset="utf-8">
+    <title>Jeleboo — Malaysia Air Quality</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Live air quality and haze readings for Malaysia, with notifications when your threshold is crossed.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Jeleboo — Malaysia Air Quality">
+    <meta property="og:site_name" content="Jeleboo">
+    <meta property="og:description" content="Live air quality and haze readings for Malaysia, with notifications when your threshold is crossed.">
+    <meta property="og:image" content="/icons/icon-512.png">
+
+    <meta name="theme-color" content="#FAFAF7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="shortcut icon" href="/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:image:src" content="/icons/icon-512.png">
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- Vite injects the module script at build time; this is what it looks for. -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    // Registration failure is non-fatal — the app still works as a normal site.
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>

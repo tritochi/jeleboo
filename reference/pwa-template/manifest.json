@@ -1,0 +1,28 @@
+{
+    "name": "Jeleboo — Malaysia Air Quality",
+    "short_name": "Jeleboo",
+    "description": "Live air quality and haze readings for Malaysia, with notifications when your threshold is crossed.",
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "start_url": "/",
+    "theme_color": "PLACEHOLDER — set from design.md's severity colour system",
+    "background_color": "PLACEHOLDER — set from design.md",
+    "display": "standalone",
+    "display_override": ["fullscreen", "minimal-ui", "window-controls-overlay"],
+    "orientation": "portrait",
+    "id": "jeleboo",
+    "dir": "ltr",
+    "scope": "/",
+    "lang": "en-MY",
+    "categories": ["weather", "health", "utilities"]
+}
