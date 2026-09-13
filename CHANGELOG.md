@@ -49,3 +49,7 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   the poll result). Added an env-gated in-process scheduler
   (`POLL_INTERVAL_MINUTES`) so a persistent host like Railway can run the poll
   job without external cron.
+- Deploy prep: `server/Dockerfile` + `.dockerignore` (official `oven/bun`
+  image, SQLite volume at `/data`), and `README.md` with frontend/backend
+  deploy notes (Vercel root `app/`; Railway root `server/`, env vars,
+  DATABASE_PATH into the volume, VITE_BACKEND_URL wiring).
