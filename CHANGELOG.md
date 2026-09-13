@@ -43,3 +43,9 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   own fill/text/accent colours; the reading number and label use the dark
   text colour so every band is readable (≥ 4.5:1 on the card). Hazardous stays
   300+ to match the critical alert flag.
+- Fixed: the manual poll trigger `POST /api/jobs/poll/run` was documented in
+  Cards 04/05/08 but never actually routed — the route is now wired
+  (`server/src/routes/poll.ts`) and verified live (returns `{ok:true,...}` with
+  the poll result). Added an env-gated in-process scheduler
+  (`POLL_INTERVAL_MINUTES`) so a persistent host like Railway can run the poll
+  job without external cron.

@@ -46,6 +46,7 @@
 - Planning drift-fix pass (design.md tightening): `architecture.md` and work-cards 05/06/07 aligned to the tightened design; completed cards 01/03 carry superseded notes; card Status fields corrected; every contrast ratio in `design.md` re-verified with a WCAG script; `bun test` re-run and passing after the pass
 - Storage: SQLite (`bun:sqlite`), not `localStorage` — this shape allows it
 - Deployment target: two-host split by default (Vercel for frontend, a persistent host for backend) — the all-Vercel/Turso alternative in `architecture.md`'s "Deployment fork" is open, not yet chosen
+- Backend host during Card 08: the builder considered Supabase and **deferred it to post-v1** — v1 ships on the current Bun + Express + SQLite stack on a persistent process host (Railway/Fly/Render choice pending); Supabase migration (Postgres + Edge Functions + `pg_cron`) tracked as an Open backlog item
 - Add to Home Screen: native prompt on Android, manual instructions on iOS — see `architecture.md`'s Component Map
 
 ## Last verified state
@@ -57,8 +58,8 @@
 - Node: Checked — v26.4.0
 - Git: Checked — 2.55.0.windows.3
 - Git identity: Checked — Ahmad Termizi Bin Muhammad / ahmadtermizi1994@gmail.com
-- GitHub account: Not checked
-- Vercel account: Not checked
+- GitHub account: Checked — tritochi; repo **https://github.com/tritochi/jeleboo** (public, `main` pushed `b5a1c2b`); `gh` CLI 2.100.0 installed + authenticated (device flow); git identity matches account email
+- Vercel account: Checked — signed up (GitHub OAuth via tritochi); **frontend imported** from `tritochi/jeleboo` (Root Directory `app`, build `bun run build`, output `dist`, `VITE_VAPID_PUBLIC_KEY` set); first deploy done and verified live at **https://jeleboo.vercel.app** (index.html, manifest `#FAFAF7`, sw.js with hashed precache all served correctly); `/api/reading` 404s until backend + `VITE_BACKEND_URL` wiring (Card 08 step)
 - Backend host account: Not checked (deferred to deploy Work Card per Setup Gate)
 - Localhost: Checked — backend on :3000, Vite dev server on :5173, both running
 - Build: Checked — frontend builds to `app/dist/` (40 modules, 156.15 kB JS / 6.10 kB CSS); dist includes manifest, sw.js (with hashed precache), icons
@@ -66,6 +67,9 @@
 - Contrast: Checked — all six severity text colours on the white reading card meet ≥ 4.5:1 (Good 7.87, Moderate 9.32, USG 5.60, Unhealthy 6.57, Very Unhealthy 11.86, Hazardous 13.02); bright accents `#F9A825`/`#EF6C00` exist only as decorative fill/accents, never text
 - Severity scale: Checked — six-band boundary script 11/11 (50→Good, 51/100→Moderate, 101/150→USG, 151/200→Unhealthy, 201/299→Very Unhealthy, 300/301→Hazardous)
 - Live reading: Checked — real AQI end-to-end via the backend (KL 118, Kuching 173, KK 70, Ipoh 120, Langkawi 28, Seremban 107, PJ 80, Tawau 77)
+- Git repo: Checked — initialized on `main`, first commit `b5a1c2b` pushed to https://github.com/tritochi/jeleboo (public); secret scan clean (no `.env*`, `*.sqlite`, `node_modules/`, `dist/`, dev logs tracked)
+- Manual poll trigger: Checked **after a found gap** — `POST /api/jobs/poll/run` was documented in Cards 04/05/08 but never routed; added `server/src/routes/poll.ts`, mounted it, added env-gated `POLL_INTERVAL_MINUTES` scheduler; verified live on a test instance (`{ok:true, devicesChecked:3,...}`); `bun test` 31/31, server `tsc` clean
+- Repo hygiene: Checked — `gh-auth*.log` (spent GitHub device code from the CLI login, no token) removed from tracking and gitignored; secret scan of tracked files remains clean
 - WAQI token: Checked — server-side only, not hardcoded in any source file
 - Third-party calls from frontend: Checked — none; the only `fetch()` in `app/src/` hits the local backend
 

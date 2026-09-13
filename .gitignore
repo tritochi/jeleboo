@@ -39,3 +39,6 @@ Thumbs.db
 # Local dev-server logs
 vite-dev.log
 vite-dev.err.log
+gh-auth*.log
+test-server*.log
+*.err.log

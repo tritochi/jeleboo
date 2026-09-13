@@ -6,7 +6,7 @@ Format per item: `- [size guess] Description (how it was noticed)`
 
 ## Open
 
-- No items yet — this fills up once v1 has shipped and real usage starts surfacing rough edges.
+- [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
 
 ## Promoted
 

@@ -178,6 +178,28 @@ export async function runPoll(deps: Partial<PollDeps> = {}): Promise<PollResult>
 }
 
 /**
+ * Start an in-process poll scheduler (once on start, then every interval).
+ * architecture.md allows either a host's own cron OR a lightweight interval
+ * inside the process; this is the in-process option, enabled by setting
+ * POLL_INTERVAL_MINUTES. Returns a stop handle for tests.
+ */
+export function startPollScheduler(intervalMinutes: number): { stop: () => void } {
+    async function run() {
+        try {
+            const result = await runPoll();
+            console.log(`[poll] cycle: ${JSON.stringify(result)}`);
+        } catch (err) {
+            console.error(
+                `[poll] cycle failed: ${err instanceof Error ? err.message : String(err)}`
+            );
+        }
+    }
+    void run();
+    const timer = setInterval(run, Math.max(1, intervalMinutes) * 60_000);
+    return { stop: () => clearInterval(timer) };
+}
+
+/**
  * Trigger one poll cycle immediately, without waiting for the schedule.
  */
 export async function triggerPoll(): Promise<PollResult> {

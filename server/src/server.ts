@@ -7,6 +7,8 @@ import readingRoutes from "./routes/reading";
 import devicesRoutes from "./routes/devices";
 import thresholdRoutes from "./routes/threshold";
 import notifyRoutes from "./routes/notify";
+import pollRoutes from "./routes/poll";
+import { startPollScheduler } from "./jobs/poll";
 
 // Load server/.env.local if present — Bun does not auto-load .env files.
 function loadEnvLocal() {
@@ -41,9 +43,17 @@ app.use("/api", readingRoutes);
 app.use("/api", devicesRoutes);
 app.use("/api", thresholdRoutes);
 app.use("/api", notifyRoutes);
+app.use("/api", pollRoutes);
 
 export function startServer(port?: number) {
     const p = port ?? Number(process.env.PORT) ?? 3000;
+    // Deployed hosts (e.g. Railway, which keeps the process alive) set
+    // POLL_INTERVAL_MINUTES to run the in-process scheduler; local dev leaves
+    // it unset and uses the manual POST /api/jobs/poll/run trigger instead.
+    const interval = Number(process.env.POLL_INTERVAL_MINUTES);
+    if (Number.isFinite(interval) && interval >= 1) {
+        startPollScheduler(Math.round(interval));
+    }
     return app.listen(p, () => {
         // eslint-disable-next-line no-console
         console.log(`Jeleboo backend listening on http://localhost:${p}`);
