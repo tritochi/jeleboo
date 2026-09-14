@@ -7,6 +7,7 @@ Format per item: `- [size guess] Description (how it was noticed)`
 ## Open
 
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
+- [S] The city-station fallback path in `GET /api/reading` returns `lat: 0, lng: 0` instead of the station's real coordinates, so a device's recorded location (via the frontend's `POST /api/devices` at Card 08) becomes `0,0 — the poll job then resolves future readings against `nearestCityStation(0,0)` rather than the user's actual Malaysian location (noticed during Card 08 live deploy verification — non-blocking for v1 proof, poll still fires, but the wrong station may be used)
 
 ## Promoted
 
