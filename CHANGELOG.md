@@ -58,6 +58,12 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   `https://jeleboo.vercel.app` + `*.vercel.app` previews, configurable via
   `CORS_ALLOWED_ORIGINS`). Verified locally: allowed origin gets the
   header, disallowed origin gets none, OPTIONS preflight returns 204.
+- Fixed: the city-station fallback in `GET /api/reading` returned `lat: 0`
+  / `lng: 0` (WAQI's city feed omits coordinates), so devices recorded a
+  `0,0` location and the poll could resolve against the wrong station. The
+  fallback now overlays the verified station coordinates from the
+  `MALAYSIA_CITY_STATIONS` table in both the reading route and the poll
+  job's resolver — verified live (KL → 3.139/101.687, Kuching → 1.562/110.389).
 - **First ship — deployed and proof-passed.** Frontend live on Vercel at
   https://jeleboo.vercel.app; backend live on Railway at
   https://jeleboo-production.up.railway.app. Verified end to end: real live AQI

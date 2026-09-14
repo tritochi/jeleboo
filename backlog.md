@@ -7,8 +7,9 @@ Format per item: `- [size guess] Description (how it was noticed)`
 ## Open
 
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
-- [S] The city-station fallback path in `GET /api/reading` returns `lat: 0, lng: 0` instead of the station's real coordinates, so a device's recorded location (via the frontend's `POST /api/devices` at Card 08) becomes `0,0 — the poll job then resolves future readings against `nearestCityStation(0,0)` rather than the user's actual Malaysian location (noticed during Card 08 live deploy verification — non-blocking for v1 proof, poll still fires, but the wrong station may be used)
 
 ## Promoted
+
+- [S] → `work-cards/10-city-fallback-station-coordinates.md` — the city-station fallback path in `GET /api/reading` returns `lat: 0, lng: 0` instead of the station's real coordinates, so a device's recorded location (via the frontend's `POST /api/devices` at Card 08) becomes `0,0 — the poll job then resolves future readings against `nearestCityStation(0,0)` rather than the user's actual Malaysian location (noticed during Card 08 live deploy verification — non-blocking for v1 proof, poll still fires, but the wrong station may be used)
 
 - [S] → `work-cards/09-severity-scale-split.md` — split the app's severity system into the official 6-band US EPA/WAQI scale (`app/src/theme/severity.ts` and `app/src/styles.css` still merge USG/Unhealthy/Very Unhealthy into one "Unhealthy" band up to 300), giving each band a `--sev-*` pair per `design.md`; also point the AQI number at the band's dark text color instead of the bright accent (`--sev-moderate` is currently `#F9A825`, ~1.85:1 on the app background) (noticed during the `design.md` revision — see Decisions made in `build-status.md`)

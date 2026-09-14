@@ -5,9 +5,9 @@
 - Name: Jeleboo
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
-- Current KDBM stage: **Shipped**
-- Current phase: Shipped — all work cards complete; iteration resumes via `prompts/09-iterate.md`
-- Current work card: none — all cards 00–09 complete
+- Current KDBM stage: **Shipped** (iterating)
+- Current phase: Iterate — first post-ship card
+- Current work card: `work-cards/10-city-fallback-station-coordinates.md`
 
 ## Completed work cards
 
@@ -26,6 +26,7 @@
 - [x] 07 Review and Fix — consolidation pass: full regression of Cards 01–06 green (backend `/health` + `/api/reading` live, bad input 400, Vite/sw/manifest 200, `bun test` 31/31, app+server `tsc` clean, anti-slop + GA/AdSense scans clean). Single blocking fix applied: the Moderate band reading number + severity label rendered in bright yellow `#f9a825` (**1.97:1 FAIL** on the white card — unreadable for common AQI 51–100); changed `--sev-moderate` to the confirmed `design.md` text colour `#5d4037` (**9.32:1 PASS**). One fix only.
 - [x] 08 Deploy and Proof — **Shipped.** Frontend live at https://jeleboo.vercel.app (Vercel, Root Directory `app`, Vite build, `VITE_VAPID_PUBLIC_KEY` + `VITE_BACKEND_URL` set); backend live at https://jeleboo-production.up.railway.app (Railway, `server/` Dockerfile, volume at `/data` with `DATABASE_PATH=/data/jeleboo.sqlite`, all vars set, `POLL_INTERVAL_MINUTES=20`). Verified live end to end: `/health`, `/api/reading` real WAQI data, CORS allow-list for `vercel.app` (GET + PUT preflight 204), deployed bundle contains the backend URL, and the builder confirmed real reading loads + PWA install on Android + iOS Add-to-Home-Screen + threshold save + real push on the live hosts. Deployment gaps found and fixed during the card: manual poll trigger route was missing (now wired + verified), CORS was absent (now allow-list middleware), stray log files removed from the public repo. Supabase migration deferred to post-v1 (backlog `[L]`).
 - [x] 09 Six-Band Severity Scale — `severity.ts` now maps the official US EPA/WAQI six bands (Good 0–50, Moderate 51–100, Unhealthy for Sensitive Groups 101–150, Unhealthy 151–200, Very Unhealthy 201–299, Hazardous 300+) with per-band text `cssVar`s; `styles.css` gained `--sev-*-fill/-text/-accent` for all six (legacy single names retained as text colours for error/saved messages); the AQI number + badge always use the band's dark text colour (all six verified ≥ 4.5:1 on white: 7.87 / 9.32 / 5.60 / 6.57 / 11.86 / 13.02); bright yellow/amber exist only as decorative accents (grep shows no text usage); `isHazardous`/poll `HAZARDOUS_THRESHOLD` unchanged (both >= 300) so the displayed band always matches which alert fired; boundary script 11/11 correct; `bun test` 31/31; app+server `tsc` clean; build passes (40 modules, new hashes precached in `dist/sw.js`).
+- [x] 10 City-Fallback Station Coordinates (Bugfix, post-ship) — the city-station fallback in `GET /api/reading` returned `lat: 0, lng: 0` (WAQI's city feed omits `idx` coords), so devices recorded `0,0` as their location and the poll resolved against `nearestCityStation(0,0)`. Fixed by overlaying the verified `MALAYSIA_CITY_STATIONS` coordinates in both `routes/reading.ts` (user-facing route) and `sources/waqi.ts` (`resolveReadingForDevice`, the poll path). Verified live on a local instance: KL → `3.139003/101.686855`, Kuching → `1.562229/110.388958` (both nonzero); `bun test` 31/31; server `tsc` clean. Now tested + merged locally, pending push → Railway redeploy.
 
 ## In progress
 

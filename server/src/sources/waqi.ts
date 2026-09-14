@@ -147,6 +147,13 @@ export async function resolveReadingForDevice(
     if (!parsed.ok) {
         throw new Error(parsed.error);
     }
+    // Same overlay as routes/reading.ts: the city feed returns 0,0 for idx
+    // coordinates; carry the verified station coords so the poll resolves
+    // against a real Malaysian location.
+    if (parsed.data.lat === 0 && parsed.data.lng === 0) {
+        parsed.data.lat = city.lat;
+        parsed.data.lng = city.lng;
+    }
     return parsed.data;
 }
 

@@ -77,6 +77,13 @@ async function resolveReading(lat: number, lng: number, token: string): Promise<
     if (!parsed.ok) {
         throw new Error(parsed.error);
     }
+    // WAQI's city feed omits `idx` coordinates, so `parseWaqiResponse` returns
+    // 0,0. Overlay the verified station coords so the reading (and any device
+    // later registered from it) carries a real Malaysian location.
+    if (parsed.data.lat === 0 && parsed.data.lng === 0) {
+        parsed.data.lat = city.lat;
+        parsed.data.lng = city.lng;
+    }
     return parsed.data;
 }
 
