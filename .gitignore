@@ -42,3 +42,4 @@ vite-dev.err.log
 gh-auth*.log
 test-server*.log
 *.err.log
+*.log
