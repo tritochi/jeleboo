@@ -58,3 +58,11 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   `https://jeleboo.vercel.app` + `*.vercel.app` previews, configurable via
   `CORS_ALLOWED_ORIGINS`). Verified locally: allowed origin gets the
   header, disallowed origin gets none, OPTIONS preflight returns 204.
+- **First ship — deployed and proof-passed.** Frontend live on Vercel at
+  https://jeleboo.vercel.app; backend live on Railway at
+  https://jeleboo-production.up.railway.app. Verified end to end: real live AQI
+  reading, PWA installed on Android + iOS (Add to Home Screen), threshold
+  save, and a real push notification on the live hosts. During the deploy we
+  found and fixed two missing pieces: the manual poll trigger route
+  (`POST /api/jobs/poll/run`) and cross-origin CORS for the Vercel→Railway
+  split.

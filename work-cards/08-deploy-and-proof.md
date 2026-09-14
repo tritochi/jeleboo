@@ -92,4 +92,4 @@ If the backend host is unavailable or the builder has no account, stop and repor
 
 ## Status
 
-Not started
+Done — Shipped; see `build-status.md` (proof links + live-host verification)
