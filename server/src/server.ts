@@ -35,6 +35,46 @@ export const app = express();
 
 app.use(express.json());
 
+// ---- CORS (deployed split only) ----
+// The browser at https://jeleboo.vercel.app talks cross-origin to the Railway
+// backend. The app never uses cookies or browser credentials, so we pin the
+// allowed origin(s) rather than reflecting anything. Vercel preview sandboxes
+// get *.vercel.app URLs — allow those too. Override via CORS_ALLOWED_ORIGINS
+// (comma-separated) if the frontend moves hosts.
+
+const DEFAULT_ALLOWED_ORIGINS = ["https://jeleboo.vercel.app"];
+
+function allowedOrigins(): string[] {
+    const fromEnv = process.env.CORS_ALLOWED_ORIGINS;
+    if (fromEnv) {
+        return fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    return DEFAULT_ALLOWED_ORIGINS;
+}
+
+function isAllowedOrigin(origin: string | null | undefined): boolean {
+    if (!origin) return false;
+    if (allowedOrigins().includes(origin)) return true;
+    // Vercel preview deployments of this project get *.vercel.app addresses.
+    return /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/.test(origin);
+}
+
+app.use((req, res, next) => {
+    const origin = req.get("Origin");
+    if (isAllowedOrigin(origin)) {
+        const allowed = origin ?? "";
+        res.setHeader("Access-Control-Allow-Origin", allowed);
+        res.setHeader("Vary", "Origin");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    }
+    if (req.method === "OPTIONS") {
+        res.sendStatus(204);
+        return;
+    }
+    next();
+});
+
 app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
 });

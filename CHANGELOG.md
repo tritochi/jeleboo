@@ -53,3 +53,8 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   image, SQLite volume at `/data`), and `README.md` with frontend/backend
   deploy notes (Vercel root `app/`; Railway root `server/`, env vars,
   DATABASE_PATH into the volume, VITE_BACKEND_URL wiring).
+- Fixed: cross-origin blocking on the deployed frontend → backend split —
+  added an allow-list CORS middleware to `server.ts` (default
+  `https://jeleboo.vercel.app` + `*.vercel.app` previews, configurable via
+  `CORS_ALLOWED_ORIGINS`). Verified locally: allowed origin gets the
+  header, disallowed origin gets none, OPTIONS preflight returns 204.
