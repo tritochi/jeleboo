@@ -1,13 +1,17 @@
 // Jeleboo — first screen. The reading is the clear focus: check-and-go,
 // not a browse app. Calm, low-density, generous whitespace. No clinical tone.
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useReading } from "./hooks/useReading";
 import { ReadingCard, LoadingCard, ErrorCard } from "./components/ReadingCard";
 import { ThresholdSetter, getDeviceId } from "./components/ThresholdSetter";
 import { NotificationPrompt } from "./components/NotificationPrompt";
 import { InstallPrompt } from "./components/InstallPrompt";
 import "./styles.css";
+
+// Card 12: the map is a second screen and is lazy-loaded — Leaflet never
+// lands in the home screen's first paint (design.md Map Screen).
+const MapScreen = lazy(() => import("./components/MapScreen"));
 
 const BACKEND = (import.meta.env.VITE_BACKEND_URL as string) ?? "";
 const DEVICE_ID = getDeviceId();
@@ -26,6 +30,9 @@ function App() {
     const { status, reading, error } = useReading(retry);
     const [offline, setOffline] = useState(!navigator.onLine);
     const [threshold, setThreshold] = useState<number | null>(null);
+    // Map & Station Explorer is a second screen (design.md) — swapping views
+    // keeps the home screen's single-reading focus untouched.
+    const [view, setView] = useState<"home" | "map">("home");
 
     // Notifications on/off — design.md keeps an easy toggle in the threshold
     // section, and the choice persists so the prompt never nags anyone who
@@ -105,6 +112,12 @@ function App() {
             </header>
 
             <main className="app-main" aria-live="polite">
+                {view === "map" ? (
+                    <Suspense fallback={<LoadingCard />}>
+                        <MapScreen onBack={() => setView("home")} />
+                    </Suspense>
+                ) : (
+                <>
                 {offline ? (
                     <p className="offline-banner" role="alert">
                         You are offline. Showing the last known reading.
@@ -153,6 +166,18 @@ function App() {
                         <span>Push notifications on</span>
                     </label>
                 </details>
+
+                {/* Map & Station Explorer: quiet secondary control, same calm
+                    bordered style as the threshold summary (design.md). */}
+                <button
+                    type="button"
+                    className="map-open"
+                    onClick={() => setView("map")}
+                >
+                    Map of Malaysian stations
+                </button>
+                </>
+                )}
             </main>
         </div>
     );

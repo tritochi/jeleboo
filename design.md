@@ -85,6 +85,10 @@ Calm.
   reading card (same calm secondary style as "Set threshold"), 44px+ target.
   The home screen keeps its single-reading focus; the map is never part of
   the first paint.
+- Navigation back: a quiet bordered "Back to reading" control sits above the
+  search field on the map screen (same secondary style, 44px+ target). It
+  returns to the reading screen without changing any state — no threshold,
+  location, or notification settings are touched by any map interaction.
 - Layout (single column, top to bottom): search field ("Search a place in
   Malaysia"), the map area (fills remaining height, at least 320px tall), and
   an attribution line ("© OpenStreetMap contributors · AQI data: WAQI") in
