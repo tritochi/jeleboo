@@ -7,7 +7,7 @@
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
 - Current phase: Iterate — Map & Station Explorer (cards 11–12)
-- Current work card: `work-cards/12-map-screen-ui.md`
+- Current work card: `work-cards/12-map-screen-ui.md` (implemented; builder device check pending)
 
 ## Completed work cards
 
@@ -27,25 +27,24 @@
 - [x] 08 Deploy and Proof — **Shipped.** Frontend live at https://jeleboo.vercel.app (Vercel, Root Directory `app`, Vite build, `VITE_VAPID_PUBLIC_KEY` + `VITE_BACKEND_URL` set); backend live at https://jeleboo-production.up.railway.app (Railway, `server/` Dockerfile, volume at `/data` with `DATABASE_PATH=/data/jeleboo.sqlite`, all vars set, `POLL_INTERVAL_MINUTES=20`). Verified live end to end: `/health`, `/api/reading` real WAQI data, CORS allow-list for `vercel.app` (GET + PUT preflight 204), deployed bundle contains the backend URL, and the builder confirmed real reading loads + PWA install on Android + iOS Add-to-Home-Screen + threshold save + real push on the live hosts. Deployment gaps found and fixed during the card: manual poll trigger route was missing (now wired + verified), CORS was absent (now allow-list middleware), stray log files removed from the public repo. Supabase migration deferred to post-v1 (backlog `[L]`).
 - [x] 09 Six-Band Severity Scale — `severity.ts` now maps the official US EPA/WAQI six bands (Good 0–50, Moderate 51–100, Unhealthy for Sensitive Groups 101–150, Unhealthy 151–200, Very Unhealthy 201–299, Hazardous 300+) with per-band text `cssVar`s; `styles.css` gained `--sev-*-fill/-text/-accent` for all six (legacy single names retained as text colours for error/saved messages); the AQI number + badge always use the band's dark text colour (all six verified ≥ 4.5:1 on white: 7.87 / 9.32 / 5.60 / 6.57 / 11.86 / 13.02); bright yellow/amber exist only as decorative accents (grep shows no text usage); `isHazardous`/poll `HAZARDOUS_THRESHOLD` unchanged (both >= 300) so the displayed band always matches which alert fired; boundary script 11/11 correct; `bun test` 31/31; app+server `tsc` clean; build passes (40 modules, new hashes precached in `dist/sw.js`).
 - [x] 10 City-Fallback Station Coordinates (Bugfix, post-ship) — the city-station fallback in `GET /api/reading` returned `lat: 0, lng: 0` (WAQI's city feed omits `idx` coords), so devices recorded `0,0` as their location and the poll resolved against `nearestCityStation(0,0)`. Fixed by overlaying the verified `MALAYSIA_CITY_STATIONS` coordinates in both `routes/reading.ts` (user-facing route) and `sources/waqi.ts` (`resolveReadingForDevice`, the poll path). Verified live on a local instance: KL → `3.139003/101.686855`, Kuching → `1.562229/110.388958` (both nonzero); `bun test` 31/31; server `tsc` clean. Pushed (`6da9ce6`) and live-verified on the deployed Railway backend — KL reading returns real station coordinates, no longer `0,0`.
+- [x] 11 Map & Search Backend Data Layer (post-ship) — `GET /api/stations` (65 cached Malaysian station markers from WAQI `/search` per state, merged with the Card 02 coordinate table, `MAP_CACHE_MINUTES` lazy cache) + `GET /api/search?q=...` (MY-only suggestions; live probe caught foreign leaks via omitted `country`, fixed with the `malaysia/` slug guard). Shared rate limiter extracted to `lib/rate-limit.ts`; server-side six-band classifier (`theme/severity.ts`); corrected the 17→16 state-count artifact. `bun test` 49/49; server `tsc` clean; CI green (`52a85a1`); both routes live-verified on Railway (65 stations, 0 failed, 0 zero-coord; `?q=kuch` → 3 MY-only; `?q=tokyo` → 0).
 
 ## In progress
 
-- **Card 12 is current** (Map Screen UI — blocked on nothing; Card 11 shipped
-  the data layer). Card 11 done 2026-09-15: `sources/stations.ts` (16
-  normalized state keywords — the Card 02 "17" was a counting artifact that
-  included an `undefined` segment; see the corrected tests), WAQI `/search`
-  per state with a verified-live Malaysia-only guard (WAQI omits `country` on
-  many entries, so the guard also accepts `malaysia/…` slugs — a live probe
-  caught Czech/Japan results leaking on `?q=kuch`), merge with the Card 02
-  coordinate table, `MAP_CACHE_MINUTES` lazy cache (65 stations, 0 failed
-  states, 0 zero-coord), `GET /api/stations` + `GET /api/search?q=…` with
-  validation and the shared 30/min/IP rate limiter (`lib/rate-limit.ts`,
-  extracted from `routes/reading.ts`), server-side six-band classifier
-  (`theme/severity.ts`, mirrors the app). Verified: `bun test` 49/49, server
-  `tsc` clean, CI green (`52a85a1`), and both routes live on Railway
-  (`/api/stations` → 65 stations, Kuching 141→usg at 1.562/110.389;
-  `/api/search?q=kuch` → 3 MY-only results; `?q=tokyo` → 0).
-  Backlog holds only the post-v1 Supabase migration `[L]`.
+- **Card 12 implemented, builder device check pending** (2026-09-15). Map
+  Screen live on Vercel from `ad488ef`: lazy `React.lazy` chunk (verified —
+  Leaflet/OSM code absent from the main `index-*.js`; `MapScreen-*.js` +
+  `MapScreen-*.css` are separate fetchable chunks, precached by sw.js), quiet
+  "Map of Malaysian stations" secondary control, "Back to reading" control
+  (added to design.md first as the one design gap), debounced 300 ms search
+  dropdown (44px+ rows, keyboard-reachable), circle pins ~22px visual /
+  44px hit target colored via the existing `--sev-<band>-fill/-text`
+  variables, station card in the reading card's fixed order, all four
+  design.md states (loading skeletons, stale banner in `#BF360C`, error card
+  with Retry, empty message), always-visible OSM/WAQI attribution, viewing-
+  only search. Verified headless: app `tsc` clean, `bun test` green, build
+  clean, CI green, anti-slop scan clean, chunk fetch 200s live. Awaiting the
+  builder's manual 320px/device pass to mark Card 12 fully Done.
 
 ## Blockers
 

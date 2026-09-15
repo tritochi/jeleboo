@@ -90,3 +90,12 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   app's (`theme/severity.ts`); corrected the station-count artifact (16 real
   states/territories, not 17 — the old test counted an `undefined` segment).
   `bun test` 49/49; CI green; both routes verified live on Railway.
+- **Map Screen (Card 12):** the map is live as a second screen at
+  https://jeleboo.vercel.app — a quiet "Map of Malaysian stations" control
+  below the reading card opens it; the ~160 kB Leaflet chunk is lazy-loaded
+  so the home screen's first paint is unchanged (verified). Six-band circle
+  pins (fill + dark-text stroke, 44px hit targets), debounced place search
+  with AQI-labeled suggestions (viewing-only), station card in the reading
+  card's fixed order, loading/stale/offline/empty states, always-visible
+  OSM/WAQI attribution. One design gap found and documented first in
+  design.md: the "Back to reading" control.
