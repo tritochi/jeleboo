@@ -7,7 +7,7 @@
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
 - Current phase: Iterate — Map & Station Explorer (cards 11–12)
-- Current work card: `work-cards/11-map-search-backend.md`
+- Current work card: `work-cards/12-map-screen-ui.md`
 
 ## Completed work cards
 
@@ -30,7 +30,22 @@
 
 ## In progress
 
-- **Cards 11–12 authored (Map & Station Explorer), 11 is current.** Architecture confirmed by the builder (2026-09-15) in `architecture.md`'s "Map & Station Explorer"; `design.md` has the full "Map Screen" section; `project-brief.md`'s Now list carries it. Backlog holds only the post-v1 Supabase migration `[L]` (the city-fallback lat/lng `[S]` was resolved by Card 10).
+- **Card 12 is current** (Map Screen UI — blocked on nothing; Card 11 shipped
+  the data layer). Card 11 done 2026-09-15: `sources/stations.ts` (16
+  normalized state keywords — the Card 02 "17" was a counting artifact that
+  included an `undefined` segment; see the corrected tests), WAQI `/search`
+  per state with a verified-live Malaysia-only guard (WAQI omits `country` on
+  many entries, so the guard also accepts `malaysia/…` slugs — a live probe
+  caught Czech/Japan results leaking on `?q=kuch`), merge with the Card 02
+  coordinate table, `MAP_CACHE_MINUTES` lazy cache (65 stations, 0 failed
+  states, 0 zero-coord), `GET /api/stations` + `GET /api/search?q=…` with
+  validation and the shared 30/min/IP rate limiter (`lib/rate-limit.ts`,
+  extracted from `routes/reading.ts`), server-side six-band classifier
+  (`theme/severity.ts`, mirrors the app). Verified: `bun test` 49/49, server
+  `tsc` clean, CI green (`52a85a1`), and both routes live on Railway
+  (`/api/stations` → 65 stations, Kuching 141→usg at 1.562/110.389;
+  `/api/search?q=kuch` → 3 MY-only results; `?q=tokyo` → 0).
+  Backlog holds only the post-v1 Supabase migration `[L]`.
 
 ## Blockers
 

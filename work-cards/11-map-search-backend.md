@@ -2,7 +2,7 @@
 
 ## Status
 
-Not started
+Done — verified locally and live on Railway (see `build-status.md`)
 
 ## Why
 
@@ -88,11 +88,12 @@ existing palette — no color data, no hex values, no styling shipped here.
 
 ## Done-when
 
-- [ ] Both routes live locally and on the deployed Railway backend with real
+- [x] Both routes live locally and on the deployed Railway backend with real
       verified data (spot-checked stations, no zero coordinates).
-- [ ] `bun test` green including the new coverage; server `tsc` clean.
-- [ ] CI green on the push.
-- [ ] No token in source; rate limiter active on both routes.
+- [x] `bun test` green including the new coverage (49/49); server `tsc` clean.
+- [x] CI green on the push (`52a85a1`).
+- [x] No token in source; rate limiter active on both routes (30/min/IP, shared
+      implementation extracted to `lib/rate-limit.ts`).
 
 ## Learner checkpoint (per prompts/06)
 

@@ -76,3 +76,17 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   `bun install --frozen-lockfile`, typecheck, and `bun test` in both `app/`
   and `server/` — the app half gets its first test file (six-band severity
   boundary suite) so the CI gate is real on both sides.
+- **Station map data layer (Card 11):** new `GET /api/stations` serves a
+  cached set of Malaysian AQI station markers (65 stations across all 16
+  states/territories) built from WAQI `/search` per state and merged with the
+  verified Card 02 coordinate table; cached for `MAP_CACHE_MINUTES` (default
+  60) on freshness-need grounds, with lazy background refresh that serves
+  cached-last-good (marked stale) while updating. New `GET /api/search?q=...`
+  serves live place suggestions for the map dropdown, Malaysian stations only
+  — a live probe caught WAQI returning Czech/Japanese results (it omits the
+  `country` field on many entries), so the guard accepts `country: MY` or a
+  `malaysia/...` slug. Shared per-IP rate limiter extracted
+  (`lib/rate-limit.ts`); server-side six-band classifier added mirroring the
+  app's (`theme/severity.ts`); corrected the station-count artifact (16 real
+  states/territories, not 17 — the old test counted an `undefined` segment).
+  `bun test` 49/49; CI green; both routes verified live on Railway.
