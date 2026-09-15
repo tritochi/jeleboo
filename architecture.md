@@ -167,6 +167,96 @@ As in Structure Overview above. Work Cards (once written) will each say exactly 
 
 User accounts, payments, admin dashboards, coverage outside Malaysia, a native app-store build.
 
+## Map & Station Explorer (PROPOSED — awaiting builder confirmation)
+
+> Status: proposed, not yet approved. No Work Cards written for this until the
+> builder confirms this subsection. Evidence below comes from live WAQI probes
+> against the production token (2026-09-15).
+
+### Map library
+
+- **Leaflet + react-leaflet, OpenStreetMap raster tiles** — no API key, no
+  billing account, attribution line required by OSM's tile policy. New app
+  dependencies only: `leaflet`, `react-leaflet`, `@types/leaflet` (dev).
+  Leaflet's CSS is imported by the map screen. Bundle impact ≈ +45 kB gz;
+  the map screen should be lazy-loaded (`React.lazy`) so the home screen's
+  first paint doesn't pay for it. Implementation note for the Work Card.
+
+### Data source — one deviation from the assumed plan, verified live
+
+- The assumed **WAQI `/map/bounds` endpoint is broken for Malaysia**: with the
+  production token it returns `status=ok` and **zero stations** for the
+  Malaysia bounding box in both coordinate orders, and the demo token errors
+  on a dense European box (`status=error`). Building markers on it would ship
+  an empty map — same class of upstream surprise as the missing city-feed
+  coordinates (Work Card 10).
+- **Replacement, verified working with the same token (no new provider,
+  no new key): WAQI `/search` per Malaysian state/territory.** All 17
+  states/territories returned `status=ok` with real stations (≈82 results
+  total). Each result carries `uid`, live `aqi`, `station.name`,
+  `station.geo` as `[lat, lon]` (verified: Kuching `1.562229, 110.388958`),
+  and `station.country: "MY"`.
+- This resolves the Peninsular-vs-Borneo bounding-box question by
+  elimination: **no bounding boxes at all**. State keywords cannot return
+  Indonesian/Bruneian/Philippine stations, and `country === "MY"` is a
+  server-side guard on top. No server-side box filtering needed.
+
+### Two new backend routes (same never-expose-the-key pattern as `/api/reading`)
+
+- `GET /api/stations` — the merged, cached marker list: `uid`, `name`,
+  `lat`, `lng`, `aqi`, `band`, `lastUpdated`. Server fetches per-state from
+  WAQI `/search` (17 calls), filters `country === "MY"`, merges with the
+  verified `MALAYSIA_CITY_STATIONS` table (73 stations, Card 02) for stable
+  geometry/naming, and serves from cache.
+- `GET /api/search?q=...` — proxies WAQI `/search` for the location
+  dropdown/suggestions. Debounced client-side (~300 ms, min 2 chars),
+  rate-limited server-side per Security Notes. Normalized response:
+  `{ name, aqi, lat, lng, uid }`.
+
+### Caching & quota discipline (verified arithmetic)
+
+- A full map refresh costs **17 search calls**. At the reading poll's 20-min
+  cadence that would be ~1,224 calls/day for the map alone — too much stacked
+  on the existing poll if WAQI enforces a hard daily quota.
+- Therefore the map cache TTL is **decoupled from the reading poll**:
+  `MAP_CACHE_MINUTES` env (default 60 → ≈408 calls/day), refreshed lazily on
+  the first map load after TTL expiry, plus an optional rotating refresher (a
+  couple of states per poll tick — e.g. 2/tick refreshes the whole country
+  in ~3.5 h at zero extra idle cost). Both new routes are rate-limited so one
+  client can't force-refresh the whole country.
+
+### Markers & severity colours
+
+- Pin colours reuse `design.md`'s six-band palette **as-is** through the
+  existing `classifyAqi` / `severity.ts` — band fill + the band's dark text
+  colour for stroke/number. **No new colours.** Colour is always paired with
+  the label (design.md rule): a pin tap opens the band name + number.
+
+### Scope guard: this is a second screen, not a home-screen change
+
+- The home screen keeps its single-reading focus. The map is reached through
+  a quiet secondary affordance (tab/segmented control or a "Map" link under
+  the reading card — the exact control is a design.md decision, not an
+  implementation-time choice).
+- **design.md needs a new section before any map UI is built**: map screen
+  layout (search bar, map area, attribution placement), pin visual spec
+  (fill/stroke/size, ≥44 px tap target), map loading/skeleton, offline and
+  error states (sw.js is network-first for `/api/*`, so offline map =
+  cached-last-good or a clean error — must be designed, not improvised),
+  station popup/bottom-sheet spec, stale/empty state, and the search-selection
+  behaviour (viewing only vs. changing the device's threshold location —
+  proposal: viewing-only for v1, thresholds stay tied to the device's own
+  location). Do not design it inline while building.
+
+### Failure honesty & testing
+
+- `/map/bounds` broken-ness is recorded here like the Card 02 coordinate gap;
+  if `/search` coverage degrades, the 73-station table still renders pins with
+  last-known AQI + stale marker per design.md's stale rules.
+- Server-side additions get `bun test` coverage (per-state parsing, MY filter,
+  merge, cache TTL, rate limiter); UI stays on manual localhost checks per the
+  existing testing strategy.
+
 ## Testing Strategy
 
 Automated tests for the parts that are easy to get subtly wrong and hard to eyeball: the threshold/hysteresis logic in `jobs/poll.ts`, and the WAQI/IQAir response-parsing functions in `sources/`. `bun test` covers this with no extra dependency. Everything UI-facing stays on the manual localhost checks already built into each Work Card — that's a deliberate choice for a project this size, not an oversight.
