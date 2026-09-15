@@ -72,3 +72,7 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   found and fixed two missing pieces: the manual poll trigger route
   (`POST /api/jobs/poll/run`) and cross-origin CORS for the Vercel→Railway
   split.
+- **CI is live.** GitHub Action (`.github/workflows/ci.yml`) on every push/PR:
+  `bun install --frozen-lockfile`, typecheck, and `bun test` in both `app/`
+  and `server/` — the app half gets its first test file (six-band severity
+  boundary suite) so the CI gate is real on both sides.
