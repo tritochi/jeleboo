@@ -39,9 +39,9 @@ Open the installed PWA — or a plain browser tab, no install required to just l
 - Add to Home Screen support on both platforms: a native install prompt on Android/Chrome, manual step-by-step instructions on iOS Safari (no programmatic trigger exists there — see `architecture.md`)
 - SQLite cache of readings, plus one row per device (push subscription + threshold)
 - Live map of Malaysian station AQI pins plus location search with dropdown
-  suggestions (Leaflet + OpenStreetMap tiles, marker data from WAQI `/search`
-  — proposed in `architecture.md`'s "Map & Station Explorer", pending builder
-  confirmation before Work Cards are written)
+  suggestions (Leaflet + OpenStreetMap tiles, marker data from WAQI
+  `/search`; confirmed in `architecture.md`'s "Map & Station Explorer" —
+  search is viewing-only in v1; Work Cards 11–12)
 
 ### Later
 

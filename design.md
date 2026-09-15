@@ -78,6 +78,45 @@ Calm.
 - iOS Safari: an instructional card (icon + text): "One-time setup: tap the Share icon → Add to Home Screen, then allow notifications." Shown only until the device is known to have notifications granted; no programmatic trigger exists on iOS.
 - Notification permission prompt: plain language, shown once, after install allows it: "Jeleboo can push you a notification when your air crosses your threshold. Allow?" with Allow / Not now. Never re-ask after an explicit denial; keep an easy "notifications on/off" toggle in the threshold section.
 
+## Map Screen (Station Explorer)
+
+- Second screen, never the home screen: reached through a quiet secondary
+  control — a bordered "Map" button in the secondary-controls stack below the
+  reading card (same calm secondary style as "Set threshold"), 44px+ target.
+  The home screen keeps its single-reading focus; the map is never part of
+  the first paint.
+- Layout (single column, top to bottom): search field ("Search a place in
+  Malaysia"), the map area (fills remaining height, at least 320px tall), and
+  an attribution line ("© OpenStreetMap contributors · AQI data: WAQI") in
+  small muted text pinned under the map — attribution is always visible.
+- Search: dropdown suggestions directly below the field, debounced ~300 ms
+  from 2+ characters; each row shows the place name and its current AQI, is
+  at least 44px tall, and is keyboard-reachable. Selecting a result pans and
+  zooms the map to it and opens its info card. **Search is viewing-only**: it
+  never changes the device's threshold, recorded location, or notification
+  settings — saved locations / threshold-tied places are the Later-list
+  watchlist item (`project-brief.md`) and get their own architecture pass.
+- Pins: circle markers, ~22px visual diameter with a ≥44px tap target, filled
+  with the severity band's fill color and a 2px stroke in the band's dark
+  text color. The six-band palette from Color / Contrast Rules is reused
+  as-is through the existing `classifyAqi` — no new colors. Color is always
+  paired with a label: tapping a pin opens a small card/bottom sheet showing,
+  in the same fixed order as the reading card, the station name, severity
+  label + monospace AQI number in the band's text color, source, and "last
+  updated". No clustering or heat effects — honest circles at station
+  coordinates.
+- States (defined now, not improvised during the build):
+  - Loading: skeleton pins + muted "Loading stations…" over the map — never a
+    blank canvas.
+  - Stale: cached-last-good pins stay visible with "Stale — stations last
+    updated X ago" in dark amber `#BF360C` (≥ 4.5:1 on `#FAFAF7`).
+  - Offline/error: if no cached set exists, a clean "Can't load the station
+    map" card with a Retry button — never a broken or empty-looking map.
+  - Empty result: "No stations found here" message; the map itself stays.
+- The map screen still obeys the mobile rules: fits 320px without horizontal
+  scroll, single-column stack, thumb-reachable controls, focus order
+  search field → map → attribution.
+
 ## Anti-Slop Rules
 
 - No fake logos.
@@ -97,3 +136,5 @@ Calm.
 - [x] Install prompt style defined per platform.
 - [x] Notification prompt explained in plain language.
 - [x] No lorem ipsum, fake testimonials, or fake stats.
+- [x] Map screen defined as a second screen with its own states (see "Map
+  Screen (Station Explorer)" above).

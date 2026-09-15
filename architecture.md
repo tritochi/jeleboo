@@ -167,11 +167,11 @@ As in Structure Overview above. Work Cards (once written) will each say exactly 
 
 User accounts, payments, admin dashboards, coverage outside Malaysia, a native app-store build.
 
-## Map & Station Explorer (PROPOSED — awaiting builder confirmation)
+## Map & Station Explorer
 
-> Status: proposed, not yet approved. No Work Cards written for this until the
-> builder confirms this subsection. Evidence below comes from live WAQI probes
-> against the production token (2026-09-15).
+> Status: **confirmed by the builder (2026-09-15)** — search-based markers,
+> decoupled map cache, viewing-only search in v1. Evidence below comes from
+> live WAQI probes against the production token (2026-09-15).
 
 ### Map library
 
@@ -213,17 +213,23 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
   rate-limited server-side per Security Notes. Normalized response:
   `{ name, aqi, lat, lng, uid }`.
 
-### Caching & quota discipline (verified arithmetic)
+### Caching & freshness (why the map cache is decoupled from the poll)
 
-- A full map refresh costs **17 search calls**. At the reading poll's 20-min
-  cadence that would be ~1,224 calls/day for the map alone — too much stacked
-  on the existing poll if WAQI enforces a hard daily quota.
-- Therefore the map cache TTL is **decoupled from the reading poll**:
-  `MAP_CACHE_MINUTES` env (default 60 → ≈408 calls/day), refreshed lazily on
-  the first map load after TTL expiry, plus an optional rotating refresher (a
-  couple of states per poll tick — e.g. 2/tick refreshes the whole country
-  in ~3.5 h at zero extra idle cost). Both new routes are rate-limited so one
-  client can't force-refresh the whole country.
+- Upstream quota is not the constraint. WAQI's own terms state: "All the API
+  are subjected to quota. The default quota is 1,000 (one thousand) requests
+  per second" (aqicn.org/api/, checked 2026-09-15) — so even the naive
+  cadence (17 calls every 20 min ≈ 1,224/day) was never a quota risk. An
+  earlier draft here justified decoupling with scarcity arithmetic; that was
+  wrong and is corrected.
+- The real reason to decouple is **freshness need**. The personal reading
+  gates a push notification, so it polls tightly (20 min). The map is
+  exploratory — an hour of staleness changes nobody's decision — so markers
+  are served from a cache with `MAP_CACHE_MINUTES` (default 60), refreshed
+  lazily on the first map load after TTL expiry. The optional rotating
+  refresher (a couple of states per poll tick — e.g. 2/tick covers the whole
+  country in ~3.5 h) exists to spread the 17-call refresh instead of
+  bursting it when the cache expires, not to save quota. Both new routes
+  stay rate-limited as ordinary abuse protection, per Security Notes.
 
 ### Markers & severity colours
 
@@ -244,9 +250,12 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
   error states (sw.js is network-first for `/api/*`, so offline map =
   cached-last-good or a clean error — must be designed, not improvised),
   station popup/bottom-sheet spec, stale/empty state, and the search-selection
-  behaviour (viewing only vs. changing the device's threshold location —
-  proposal: viewing-only for v1, thresholds stay tied to the device's own
-  location). Do not design it inline while building.
+  behaviour — **confirmed viewing-only for v1**: selecting a result pans the
+  map and shows the station; it never writes the device's threshold,
+  location, or notification settings. Threshold-tied places are the
+  saved-locations/watchlist item in `project-brief.md`'s Later list wearing a
+  different hat — it gets its own architecture pass when actually picked up;
+  do not conflate the two. Do not design the map inline while building.
 
 ### Failure honesty & testing
 

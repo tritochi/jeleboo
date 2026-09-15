@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — first post-ship card
-- Current work card: `work-cards/10-city-fallback-station-coordinates.md`
+- Current phase: Iterate — Map & Station Explorer (cards 11–12)
+- Current work card: `work-cards/11-map-search-backend.md`
 
 ## Completed work cards
 
@@ -26,11 +26,11 @@
 - [x] 07 Review and Fix — consolidation pass: full regression of Cards 01–06 green (backend `/health` + `/api/reading` live, bad input 400, Vite/sw/manifest 200, `bun test` 31/31, app+server `tsc` clean, anti-slop + GA/AdSense scans clean). Single blocking fix applied: the Moderate band reading number + severity label rendered in bright yellow `#f9a825` (**1.97:1 FAIL** on the white card — unreadable for common AQI 51–100); changed `--sev-moderate` to the confirmed `design.md` text colour `#5d4037` (**9.32:1 PASS**). One fix only.
 - [x] 08 Deploy and Proof — **Shipped.** Frontend live at https://jeleboo.vercel.app (Vercel, Root Directory `app`, Vite build, `VITE_VAPID_PUBLIC_KEY` + `VITE_BACKEND_URL` set); backend live at https://jeleboo-production.up.railway.app (Railway, `server/` Dockerfile, volume at `/data` with `DATABASE_PATH=/data/jeleboo.sqlite`, all vars set, `POLL_INTERVAL_MINUTES=20`). Verified live end to end: `/health`, `/api/reading` real WAQI data, CORS allow-list for `vercel.app` (GET + PUT preflight 204), deployed bundle contains the backend URL, and the builder confirmed real reading loads + PWA install on Android + iOS Add-to-Home-Screen + threshold save + real push on the live hosts. Deployment gaps found and fixed during the card: manual poll trigger route was missing (now wired + verified), CORS was absent (now allow-list middleware), stray log files removed from the public repo. Supabase migration deferred to post-v1 (backlog `[L]`).
 - [x] 09 Six-Band Severity Scale — `severity.ts` now maps the official US EPA/WAQI six bands (Good 0–50, Moderate 51–100, Unhealthy for Sensitive Groups 101–150, Unhealthy 151–200, Very Unhealthy 201–299, Hazardous 300+) with per-band text `cssVar`s; `styles.css` gained `--sev-*-fill/-text/-accent` for all six (legacy single names retained as text colours for error/saved messages); the AQI number + badge always use the band's dark text colour (all six verified ≥ 4.5:1 on white: 7.87 / 9.32 / 5.60 / 6.57 / 11.86 / 13.02); bright yellow/amber exist only as decorative accents (grep shows no text usage); `isHazardous`/poll `HAZARDOUS_THRESHOLD` unchanged (both >= 300) so the displayed band always matches which alert fired; boundary script 11/11 correct; `bun test` 31/31; app+server `tsc` clean; build passes (40 modules, new hashes precached in `dist/sw.js`).
-- [x] 10 City-Fallback Station Coordinates (Bugfix, post-ship) — the city-station fallback in `GET /api/reading` returned `lat: 0, lng: 0` (WAQI's city feed omits `idx` coords), so devices recorded `0,0` as their location and the poll resolved against `nearestCityStation(0,0)`. Fixed by overlaying the verified `MALAYSIA_CITY_STATIONS` coordinates in both `routes/reading.ts` (user-facing route) and `sources/waqi.ts` (`resolveReadingForDevice`, the poll path). Verified live on a local instance: KL → `3.139003/101.686855`, Kuching → `1.562229/110.388958` (both nonzero); `bun test` 31/31; server `tsc` clean. Now tested + merged locally, pending push → Railway redeploy.
+- [x] 10 City-Fallback Station Coordinates (Bugfix, post-ship) — the city-station fallback in `GET /api/reading` returned `lat: 0, lng: 0` (WAQI's city feed omits `idx` coords), so devices recorded `0,0` as their location and the poll resolved against `nearestCityStation(0,0)`. Fixed by overlaying the verified `MALAYSIA_CITY_STATIONS` coordinates in both `routes/reading.ts` (user-facing route) and `sources/waqi.ts` (`resolveReadingForDevice`, the poll path). Verified live on a local instance: KL → `3.139003/101.686855`, Kuching → `1.562229/110.388958` (both nonzero); `bun test` 31/31; server `tsc` clean. Pushed (`6da9ce6`) and live-verified on the deployed Railway backend — KL reading returns real station coordinates, no longer `0,0`.
 
 ## In progress
 
-- None — all planned cards complete. Iteration resumes via `prompts/09-iterate.md` (backlog currently holds the post-v1 Supabase migration `[L]` and the city-fallback lat/lng `[S]`).
+- **Cards 11–12 authored (Map & Station Explorer), 11 is current.** Architecture confirmed by the builder (2026-09-15) in `architecture.md`'s "Map & Station Explorer"; `design.md` has the full "Map Screen" section; `project-brief.md`'s Now list carries it. Backlog holds only the post-v1 Supabase migration `[L]` (the city-fallback lat/lng `[S]` was resolved by Card 10).
 
 ## Blockers
 
@@ -50,6 +50,7 @@
 - Deployment target: two-host split by default (Vercel for frontend, a persistent host for backend) — the all-Vercel/Turso alternative in `architecture.md`'s "Deployment fork" is open, not yet chosen
 - Backend host during Card 08: the builder considered Supabase and **deferred it to post-v1** — v1 ships on the current Bun + Express + SQLite stack on a persistent process host (Railway/Fly/Render choice pending); Supabase migration (Postgres + Edge Functions + `pg_cron`) tracked as an Open backlog item
 - Add to Home Screen: native prompt on Android, manual instructions on iOS — see `architecture.md`'s Component Map
+- Map & Station Explorer (2026-09-15): confirmed by the builder — search-based markers (WAQI `/map/bounds` is broken for Malaysia, verified live; `/search` per state works, 17/17, ≈82 stations), decoupled `MAP_CACHE_MINUTES` cache on **freshness-need** grounds (not quota — WAQI's docs allow 1,000 req/s; the personal reading gates a push and polls tightly, the map tolerates an hour of staleness), and **viewing-only** search in v1 (threshold-tied places are the Later-list watchlist item, own architecture pass later). CI pipeline also live (GitHub Actions, both halves green).
 
 ## Last verified state
 
