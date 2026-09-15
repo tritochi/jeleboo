@@ -123,9 +123,16 @@ describe("nearestCityStation", () => {
         }
     });
 
-    it("covers all 13 Malaysian states plus federal territories (73 stations)", () => {
+    it("covers all Malaysian states + federal territories (73 stations)", () => {
         expect(MALAYSIA_CITY_STATIONS.length).toBe(73);
-        const states = new Set(MALAYSIA_CITY_STATIONS.map((s) => s.slug.split("/")[1]));
-        expect(states.size).toBe(17);
+        // Card 11 correction: this used to count 17 because bare slugs
+        // (ipoh, perai, miri, kuala-lumpur) contribute an `undefined` segment.
+        // Malaysia has 16 states/territories in this table.
+        const states = new Set(
+            MALAYSIA_CITY_STATIONS
+                .map((s) => s.slug.split("/")[1])
+                .filter((seg): seg is string => !!seg)
+        );
+        expect(states.size).toBe(16);
     });
 });

@@ -8,6 +8,7 @@ import devicesRoutes from "./routes/devices";
 import thresholdRoutes from "./routes/threshold";
 import notifyRoutes from "./routes/notify";
 import pollRoutes from "./routes/poll";
+import stationsRoutes from "./routes/stations";
 import { startPollScheduler } from "./jobs/poll";
 
 // Load server/.env.local if present — Bun does not auto-load .env files.
@@ -84,6 +85,7 @@ app.use("/api", devicesRoutes);
 app.use("/api", thresholdRoutes);
 app.use("/api", notifyRoutes);
 app.use("/api", pollRoutes);
+app.use("/api", stationsRoutes);
 
 export function startServer(port?: number) {
     const p = port ?? Number(process.env.PORT) ?? 3000;

@@ -18,6 +18,7 @@ import {
 } from "../sources/waqi";
 import { nearestCityStation } from "../sources/city-stations";
 import { upsertReading } from "../db/queries";
+import { makeRateLimiter } from "../lib/rate-limit";
 
 const router = Router();
 
@@ -39,19 +40,9 @@ function minutesAgo(iso: string): number {
 
 /**
  * Basic per-IP rate limit for the reading endpoint so one misbehaving client
- * can't burn the day's upstream API quota for everyone.
+ * can't burn the day's upstream API quota for everyone. Implementation moved
+ * to lib/rate-limit.ts in Card 11 so the stations/search routes share it.
  */
-function makeRateLimiter(limit: number, windowMs: number) {
-    const hits = new Map<string, number[]>();
-    return function allow(ip: string): boolean {
-        const now = Date.now();
-        const windowStart = now - windowMs;
-        const times = (hits.get(ip) ?? []).filter((t) => t > windowStart);
-        times.push(now);
-        hits.set(ip, times);
-        return times.length <= limit;
-    };
-}
 
 const readingLimiter = makeRateLimiter(30, 60_000); // 30 requests per minute per IP
 
