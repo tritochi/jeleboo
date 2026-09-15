@@ -98,4 +98,5 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   with AQI-labeled suggestions (viewing-only), station card in the reading
   card's fixed order, loading/stale/offline/empty states, always-visible
   OSM/WAQI attribution. One design gap found and documented first in
-  design.md: the "Back to reading" control.
+  design.md: the "Back to reading" control. **Builder-verified** on the live
+  hosts (navigation, search, pin/label pairing, offline, 320px).

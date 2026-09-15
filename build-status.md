@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — Map & Station Explorer (cards 11–12)
-- Current work card: `work-cards/12-map-screen-ui.md` (implemented; builder device check pending)
+- Current phase: Iterate — Map & Station Explorer shipped; backlog is the queue
+- Current work card: none (12 done; next work comes from `backlog.md` or new usage)
 
 ## Completed work cards
 
@@ -28,23 +28,20 @@
 - [x] 09 Six-Band Severity Scale — `severity.ts` now maps the official US EPA/WAQI six bands (Good 0–50, Moderate 51–100, Unhealthy for Sensitive Groups 101–150, Unhealthy 151–200, Very Unhealthy 201–299, Hazardous 300+) with per-band text `cssVar`s; `styles.css` gained `--sev-*-fill/-text/-accent` for all six (legacy single names retained as text colours for error/saved messages); the AQI number + badge always use the band's dark text colour (all six verified ≥ 4.5:1 on white: 7.87 / 9.32 / 5.60 / 6.57 / 11.86 / 13.02); bright yellow/amber exist only as decorative accents (grep shows no text usage); `isHazardous`/poll `HAZARDOUS_THRESHOLD` unchanged (both >= 300) so the displayed band always matches which alert fired; boundary script 11/11 correct; `bun test` 31/31; app+server `tsc` clean; build passes (40 modules, new hashes precached in `dist/sw.js`).
 - [x] 10 City-Fallback Station Coordinates (Bugfix, post-ship) — the city-station fallback in `GET /api/reading` returned `lat: 0, lng: 0` (WAQI's city feed omits `idx` coords), so devices recorded `0,0` as their location and the poll resolved against `nearestCityStation(0,0)`. Fixed by overlaying the verified `MALAYSIA_CITY_STATIONS` coordinates in both `routes/reading.ts` (user-facing route) and `sources/waqi.ts` (`resolveReadingForDevice`, the poll path). Verified live on a local instance: KL → `3.139003/101.686855`, Kuching → `1.562229/110.388958` (both nonzero); `bun test` 31/31; server `tsc` clean. Pushed (`6da9ce6`) and live-verified on the deployed Railway backend — KL reading returns real station coordinates, no longer `0,0`.
 - [x] 11 Map & Search Backend Data Layer (post-ship) — `GET /api/stations` (65 cached Malaysian station markers from WAQI `/search` per state, merged with the Card 02 coordinate table, `MAP_CACHE_MINUTES` lazy cache) + `GET /api/search?q=...` (MY-only suggestions; live probe caught foreign leaks via omitted `country`, fixed with the `malaysia/` slug guard). Shared rate limiter extracted to `lib/rate-limit.ts`; server-side six-band classifier (`theme/severity.ts`); corrected the 17→16 state-count artifact. `bun test` 49/49; server `tsc` clean; CI green (`52a85a1`); both routes live-verified on Railway (65 stations, 0 failed, 0 zero-coord; `?q=kuch` → 3 MY-only; `?q=tokyo` → 0).
+- [x] 12 Map Screen — Station Explorer (post-ship) — lazy `React.lazy` Leaflet screen (Leaflet/OSM code verified absent from the main bundle; `MapScreen-*.js/.css` separate precached chunks), quiet "Map of Malaysian stations" secondary control, "Back to reading" control (design gap documented in design.md first), debounced 300 ms search with 44px+ rows and viewing-only selection, six-band circle pins (~22px visual / 44px hit target, colors from the existing `--sev-<band>-fill/-text` variables), station card in the reading card's fixed order, all four design.md states, always-visible OSM/WAQI attribution. App `tsc` clean; CI green (`ad488ef`); live on Vercel; builder passed the manual device check incl. 320px.
 
 ## In progress
 
-- **Card 12 implemented, builder device check pending** (2026-09-15). Map
-  Screen live on Vercel from `ad488ef`: lazy `React.lazy` chunk (verified —
-  Leaflet/OSM code absent from the main `index-*.js`; `MapScreen-*.js` +
-  `MapScreen-*.css` are separate fetchable chunks, precached by sw.js), quiet
-  "Map of Malaysian stations" secondary control, "Back to reading" control
-  (added to design.md first as the one design gap), debounced 300 ms search
-  dropdown (44px+ rows, keyboard-reachable), circle pins ~22px visual /
-  44px hit target colored via the existing `--sev-<band>-fill/-text`
-  variables, station card in the reading card's fixed order, all four
-  design.md states (loading skeletons, stale banner in `#BF360C`, error card
-  with Retry, empty message), always-visible OSM/WAQI attribution, viewing-
-  only search. Verified headless: app `tsc` clean, `bun test` green, build
-  clean, CI green, anti-slop scan clean, chunk fetch 200s live. Awaiting the
-  builder's manual 320px/device pass to mark Card 12 fully Done.
+- Nothing. The Map & Station Explorer (Cards 11–12) is **shipped and
+  builder-verified** (2026-09-15): Card 11 shipped the data layer (see
+  Completed), Card 12 shipped the screen and the builder passed the manual
+  device check — navigation (Map button → Back to reading), search with
+  viewing-only selection, pin color/label pairing, offline/stale states, and
+  the 320px mobile pass. Design debt discovered during the build was handled
+  design-first (the "Back to reading" control was added to design.md before
+  implementation). Remaining queue: `backlog.md` holds only the post-v1
+  Supabase migration `[L]`; anything new goes through
+  `prompts/09-iterate.md` → architecture pass (if structural) → Work Card.
 
 ## Blockers
 

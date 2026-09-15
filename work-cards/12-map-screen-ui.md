@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — headless checks pass, live on Vercel; device/visual verification pending the builder (see `build-status.md`)
+Done — verified by the builder on the live hosts (see `build-status.md`)
 
 ## Why
 
@@ -86,8 +86,9 @@ design.md first, never style it inline during the build.
 
 - [x] Map screen live on https://jeleboo.vercel.app (lazy chunk + its CSS
       verified fetchable; pins come from the live backend's station set).
-- [ ] Every design.md Map Screen bullet verified manually at 320px — *builder
-      device check pending*.
+- [x] Every design.md Map Screen bullet verified manually at 320px — **passed
+      by the builder** (navigation, search + selection, pin/label pairing,
+      offline state, 320px).
 - [x] Home screen first paint unchanged (map chunk lazy, not in the main
       bundle — verified: `index-*.js` contains no Leaflet/OSM code).
 - [x] `bun test` + both `tsc` + CI green (`ad488ef`); no tracking IDs; secret
