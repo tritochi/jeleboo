@@ -90,6 +90,13 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   app's (`theme/severity.ts`); corrected the station-count artifact (16 real
   states/territories, not 17 — the old test counted an `undefined` segment).
   `bun test` 49/49; CI green; both routes verified live on Railway.
+- **Quiet hours (Card 13):** notifications can now be silenced overnight —
+  a "Quiet hours" control in the threshold section with a from/to time
+  window (stored per device in UTC, so it survives restarts and timezone
+  math stays server-side). Personal-threshold pushes inside the window are
+  skipped, but a crossing still active when quiet hours end is delivered by
+  the next poll. **Hazardous (300+) alerts always break through.** Verified
+  live: 1 crossing suppressed with quiet hours on, delivered after disabling.
 - **Map Screen (Card 12):** the map is live as a second screen at
   https://jeleboo.vercel.app — a quiet "Map of Malaysian stations" control
   below the reading card opens it; the ~160 kB Leaflet chunk is lazy-loaded

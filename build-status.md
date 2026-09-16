@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — Map & Station Explorer shipped; backlog is the queue
-- Current work card: none (12 done; next work comes from `backlog.md` or new usage)
+- Current phase: Iterate — QoL queue: quiet hours (Card 13, builder check pending) → city-change detection → DOE guidance line
+- Current work card: `work-cards/13-quiet-hours.md` (implemented + live-verified; builder device check pending)
 
 ## Completed work cards
 
@@ -32,16 +32,27 @@
 
 ## In progress
 
-- Nothing. The Map & Station Explorer (Cards 11–12) is **shipped and
-  builder-verified** (2026-09-15): Card 11 shipped the data layer (see
-  Completed), Card 12 shipped the screen and the builder passed the manual
-  device check — navigation (Map button → Back to reading), search with
-  viewing-only selection, pin color/label pairing, offline/stale states, and
-  the 320px mobile pass. Design debt discovered during the build was handled
-  design-first (the "Back to reading" control was added to design.md before
-  implementation). Remaining queue: `backlog.md` holds only the post-v1
-  Supabase migration `[L]`; anything new goes through
-  `prompts/09-iterate.md` → architecture pass (if structural) → Work Card.
+- **Card 13 (quiet hours) implemented + live-verified, builder device check
+  pending** (2026-09-15). Backend: `devices.quiet_start_utc/quiet_end_utc`
+  (UTC minutes, NULL = disabled, idempotent migration); pure tested logic in
+  `jobs/poll.ts` (`isWithinQuietHours` incl. midnight wrap, start inclusive /
+  end exclusive; `shouldSuppressForQuietHours` with the hazardous 300+
+  bypass); poll suppresses non-hazardous dispatches inside the window by
+  **skipping both the push and the notification_log row** — deliberate
+  semantics: hysteresis state stays untouched, so a crossing still active
+  when quiet hours end is delivered by the next poll, and crossings that
+  begin+end inside the window never spam the morning;
+  `PollResult.notificationsSuppressed` added. Route
+  `PUT /api/devices/:id/quiet-hours` (validated: integers 0–1439, start ≠
+  end, 400/404 paths); `GET /api/devices/:id` returns the fields. Frontend:
+  `QuietHoursSetter` inside the threshold section (design.md bullet added
+  before the UI), local time ↔ UTC conversion at save/restore, default
+  22:00–07:00, plain-language hazardous-bypass note. Verified: `bun test`
+  62/62 (13 new), both `tsc` clean, build clean, CI green (`dcb794d`), and
+  live on Railway (register → enable window → poll: `devicesChecked 13,
+  suppressed 1, sent 0, errors []` → disable). Vercel serving the new
+  bundle. Next in the builder's priority queue: city-change detection →
+  DOE guidance line — promoted one at a time.
 
 ## Blockers
 

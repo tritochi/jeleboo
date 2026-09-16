@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-In progress
+Done — verified locally and live on Railway (poll suppression matrix + route validation); UI shipped on Vercel, builder device check pending (see `build-status.md`)
 
 ## Why
 
@@ -79,12 +79,18 @@ built. No new colors; hazardous-bypass copy stays plain-language.
 
 ## Done-when
 
-- [ ] `PUT .../quiet-hours` persists; invalid bodies → 400; unknown device → 404.
-- [ ] Poll suppresses a personal crossing inside the window (counted in
-      `notificationsSuppressed`, no log row, no push) and hazardous still fires.
-- [ ] Wrap-around window (e.g. 22:00→07:00) behaves correctly.
-- [ ] `bun test` green incl. new coverage; both `tsc` clean; CI green.
-- [ ] UI saves/restores quiet hours; builder-verified on the live hosts.
+- [x] `PUT .../quiet-hours` persists; invalid bodies → 400 (incl. zero-length
+      window); unknown device → 404 — verified live.
+- [x] Poll suppresses a personal crossing inside the window (counted in
+      `notificationsSuppressed`, no log row, no push) and hazardous still
+      fires — suppression verified live (`devicesChecked 13, suppressed 1,
+      sent 0, errors []`); the hazardous bypass is covered by unit tests.
+- [x] Wrap-around window (e.g. 22:00→07:00) behaves correctly — unit-tested
+      boundary matrix (start inclusive, end exclusive, midnight wrap).
+- [x] `bun test` green incl. new coverage (62/62); both `tsc` clean; CI green
+      (`dcb794d`).
+- [x] UI saves/restores quiet hours (live bundle contains the control);
+      builder device check pending to close the card.
 
 ## Learner checkpoint (per prompts/06)
 
