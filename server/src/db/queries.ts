@@ -51,6 +51,8 @@ export interface Device {
     critical_alerts_enabled: number;
     last_lat: number | null;
     last_lng: number | null;
+    quiet_start_utc: number | null;
+    quiet_end_utc: number | null;
     created_at: string;
 }
 
@@ -78,6 +80,16 @@ export function setCriticalAlerts(id: string, enabled: boolean): void {
     db.prepare(`
         UPDATE devices SET critical_alerts_enabled = ? WHERE id = ?
     `).run(enabled ? 1 : 0, id);
+}
+
+export function setDeviceQuietHours(
+    id: string,
+    startUtc: number | null,
+    endUtc: number | null
+): void {
+    db.prepare(`
+        UPDATE devices SET quiet_start_utc = ?, quiet_end_utc = ? WHERE id = ?
+    `).run(startUtc, endUtc, id);
 }
 
 export function getDevice(id: string): Device | null {

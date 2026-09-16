@@ -38,6 +38,8 @@ router.get("/devices/:id", (req, res) => {
         id: device.id,
         default_threshold: device.default_threshold,
         critical_alerts_enabled: Boolean(device.critical_alerts_enabled),
+        quiet_start_utc: device.quiet_start_utc ?? null,
+        quiet_end_utc: device.quiet_end_utc ?? null,
     });
 });
 

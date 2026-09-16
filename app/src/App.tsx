@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useReading } from "./hooks/useReading";
 import { ReadingCard, LoadingCard, ErrorCard } from "./components/ReadingCard";
 import { ThresholdSetter, getDeviceId } from "./components/ThresholdSetter";
+import { QuietHoursSetter } from "./components/QuietHoursSetter";
 import { NotificationPrompt } from "./components/NotificationPrompt";
 import { InstallPrompt } from "./components/InstallPrompt";
 import "./styles.css";
@@ -33,6 +34,12 @@ function App() {
     // Map & Station Explorer is a second screen (design.md) — swapping views
     // keeps the home screen's single-reading focus untouched.
     const [view, setView] = useState<"home" | "map">("home");
+    // Quiet hours (Card 13): stored as minutes since midnight UTC; loaded
+    // with the device row so the control can restore its saved state.
+    const [quietHours, setQuietHours] = useState<{ start: number | null; end: number | null }>({
+        start: null,
+        end: null,
+    });
 
     // Notifications on/off — design.md keeps an easy toggle in the threshold
     // section, and the choice persists so the prompt never nags anyone who
@@ -85,6 +92,12 @@ function App() {
                 const data = await res.json();
                 if (!cancelled && data.default_threshold !== null && data.default_threshold !== undefined) {
                     setThreshold(data.default_threshold);
+                }
+                if (!cancelled) {
+                    setQuietHours({
+                        start: data.quiet_start_utc ?? null,
+                        end: data.quiet_end_utc ?? null,
+                    });
                 }
             } catch {
                 // Non-fatal: the threshold control still works; it just has no
@@ -165,6 +178,14 @@ function App() {
                         />
                         <span>Push notifications on</span>
                     </label>
+
+                    {/* Quiet hours (Card 13): inside the threshold section,
+                        below the notifications toggle, per design.md. */}
+                    <QuietHoursSetter
+                        deviceId={DEVICE_ID}
+                        initialStartUtc={quietHours.start}
+                        initialEndUtc={quietHours.end}
+                    />
                 </details>
 
                 {/* Map & Station Explorer: quiet secondary control, same calm

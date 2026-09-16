@@ -496,7 +496,7 @@ body {
         padding: 1.25rem 1rem 2.5rem;
     }
 }
-/* ---- Map & Station Explorer (Card 12) — design.md Map Screen ---- */
+/* ---- Map & Station Explorer (Card 12) ï¿½ design.md Map Screen ---- */
 
 .map-open,
 .map-back {
@@ -708,4 +708,56 @@ body {
     .map-area {
         min-height: 320px; /* keeps the design floor at the narrowest width */
     }
+}
+
+/* ---- Quiet hours (Card 13) â€” inside the threshold section ---- */
+
+.quiet-hours {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.quiet-hours-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    min-height: 44px; /* touch target */
+}
+
+.quiet-hours-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.quiet-hours-field {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.quiet-hours-field input[type="time"] {
+    min-height: 44px; /* touch target */
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--text);
+    font: inherit;
+}
+
+.quiet-hours-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.quiet-hours .threshold-save {
+    margin-top: 0.5rem;
 }

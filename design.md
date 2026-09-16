@@ -52,6 +52,7 @@ Calm.
 - Cards: soft edges (12–16px radius), generous padding (20–24px), no harsh drop shadows — a subtle 1px border in a neutral gray instead.
 - Buttons: one primary action per screen, calm weight, full-width on mobile, 44px+ touch target.
 - Threshold control: a labeled input (number, 0–500) with a "Save" primary button and inline validation text; it sits below the reading card, collapsed behind a quiet "Set threshold" affordance.
+- Quiet hours control (Card 13): inside the threshold section, below the "Push notifications on" toggle — an enable checkbox ("Quiet hours") plus two `<input type="time">` fields ("from" / "to", default 22:00–07:00 local), same secondary style and 44px+ targets. Saves silently with the same inline "Saved." confirmation pattern. Hazardous (300+) alerts ignore quiet hours and their existing copy already reads as an emergency — no extra disclaimer text.
 - Loading / stale / offline states:
   - Loading: skeleton band + muted "Fetching latest reading…", never a blank screen.
   - Stale: the last cached reading stays visible with "Stale — last updated X ago" in dark amber `#BF360C` (≥ 4.5:1 on `#FAFAF7`).

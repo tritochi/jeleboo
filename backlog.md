@@ -18,7 +18,6 @@ Format per item: `- [size guess] Description (how it was noticed)`
 ### [medium] — additive to schema/logic; short spec line before the card, no architecture pass
 
 - [medium] Dominant pollutant shown in the UI — **checked: not a pure display change.** WAQI's `dominentpol` field is neither fetched (`parseWaqiResponse` never reads it) nor stored (`readings` has no column), so the card adds parser support + a `readings.dominant_pollutant` column (migration) + route/UI passthrough (builder QoL brainstorm + code check)
-- [medium] Quiet hours for notifications (per-device start/end in the `devices` schema) with the 300+ hazardous override **explicitly bypassing** quiet hours — spec the exact override copy as part of the card (builder QoL brainstorm, post-ship)
 - [medium] Trend-aware early warning using existing `readings` history — the window and slope threshold that count as "climbing fast" are defined **in the card**, not while building (builder QoL brainstorm, post-ship)
 - [medium] Snooze/mute notifications for a set period — needs a `muted_until`-style `devices` field; card defines the allowed durations and where the control lives (builder QoL brainstorm, post-ship)
 - [medium] City-change detection — when GPS moves significantly, re-resolve the station and offer the new reading; what GPS distance counts as "significant" is defined **in the card** (builder QoL brainstorm, post-ship)
@@ -39,6 +38,8 @@ Format per item: `- [size guess] Description (how it was noticed)`
 - [medium, needs design.md pass first] Auto-generated shareable haze report images — canvas-generated share card; doesn't touch the data model, but the card's visual design needs a `design.md` pass (styling of the generated image) before implementation, per the design-first rule (builder QoL brainstorm, post-ship)
 
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
+
+- [medium] → `work-cards/13-quiet-hours.md` — quiet hours for notifications (per-device UTC window in the `devices` schema) with the 300+ hazardous override explicitly bypassing quiet hours (promoted 2026-09-15 — builder priority 1 of 3: quiet hours → city-change detection → DOE guidance line)
 
 ## Promoted
 

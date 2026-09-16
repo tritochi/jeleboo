@@ -33,6 +33,7 @@ export interface PollDeps {
 export interface PollResult {
     devicesChecked: number;
     notificationsSent: number;
+    notificationsSuppressed: number;
     errors: string[];
 }
 
@@ -104,6 +105,56 @@ export function evaluateThreshold(
     return null;
 }
 
+// ---- Quiet hours (Card 13) ----
+
+/**
+ * True when `nowUtcMinutes` (0–1439) falls inside the device's quiet window.
+ * Handles windows that wrap midnight (e.g. 1320→420 = 22:00→07:00 UTC).
+ * A disabled window (nulls) or a zero-length one (start === end) is never
+ * "within" — that validation happens at the route, this is the read path.
+ * Pure and deterministic — unit-tested in test/quiet-hours.test.ts.
+ */
+export function isWithinQuietHours(
+    nowUtcMinutes: number,
+    startUtc: number | null | undefined,
+    endUtc: number | null | undefined
+): boolean {
+    if (
+        startUtc === null || startUtc === undefined ||
+        endUtc === null || endUtc === undefined ||
+        startUtc === endUtc
+    ) {
+        return false;
+    }
+    if (startUtc < endUtc) {
+        return nowUtcMinutes >= startUtc && nowUtcMinutes < endUtc;
+    }
+    // Wrap-around: the window spans midnight.
+    return nowUtcMinutes >= startUtc || nowUtcMinutes < endUtc;
+}
+
+/**
+ * Whether a would-be notification dispatch should be suppressed by quiet
+ * hours. Hazardous (300+) dispatches bypass quiet hours unconditionally —
+ * an air emergency must never be silenced by a bedtime setting. Pure and
+ * unit-tested.
+ */
+export function shouldSuppressForQuietHours(
+    readingAqi: number,
+    startUtc: number | null | undefined,
+    endUtc: number | null | undefined,
+    nowUtcMinutes: number
+): boolean {
+    if (readingAqi >= HAZARDOUS_THRESHOLD) return false;
+    return isWithinQuietHours(nowUtcMinutes, startUtc, endUtc);
+}
+
+/** Current minutes since midnight UTC — the one non-pure input. */
+export function nowUtcMinutes(): number {
+    const d = new Date();
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
 /**
  * Run one poll cycle against the real database and WAQI.
  */
@@ -113,7 +164,7 @@ export async function runPoll(deps: Partial<PollDeps> = {}): Promise<PollResult>
     const devices = deps.devices ?? getAllDevices();
 
     const token = getWaqiToken();
-    const result: PollResult = { devicesChecked: 0, notificationsSent: 0, errors: [] };
+    const result: PollResult = { devicesChecked: 0, notificationsSent: 0, notificationsSuppressed: 0, errors: [] };
 
     for (const device of devices) {
         result.devicesChecked++;
@@ -142,6 +193,17 @@ export async function runPoll(deps: Partial<PollDeps> = {}): Promise<PollResult>
         const newState = evaluateThreshold(device, reading, previous);
 
         if (newState) {
+            // Quiet hours (Card 13): suppress the dispatch AND the log write
+            // for non-hazardous notifications inside the device's window.
+            // Skipping the log write is deliberate — hysteresis state stays
+            // untouched, so a crossing still active when quiet hours end is
+            // delivered by the next poll. Hazardous (300+) always dispatches.
+            if (shouldSuppressForQuietHours(reading.aqi_value, device.quiet_start_utc, device.quiet_end_utc, nowUtcMinutes())) {
+                result.notificationsSuppressed++;
+                log(`device ${device.id}: ${newState.state} at AQI ${reading.aqi_value} suppressed (quiet hours)`);
+                continue;
+            }
+
             logNotification(
                 device.id,
                 newState.threshold_value,

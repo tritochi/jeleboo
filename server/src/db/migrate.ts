@@ -23,4 +23,9 @@ export function migrate(db: Database): void {
     // job needs to resolve a reading per device.
     addColumnIfMissing(db, "devices", "last_lat", "REAL");
     addColumnIfMissing(db, "devices", "last_lng", "REAL");
+    // Added in Work Card 13: quiet hours, stored as minutes since midnight
+    // UTC (0–1439) so the server never guesses timezones; NULL = disabled.
+    // The frontend converts the user's local times at save time.
+    addColumnIfMissing(db, "devices", "quiet_start_utc", "INTEGER");
+    addColumnIfMissing(db, "devices", "quiet_end_utc", "INTEGER");
 }
