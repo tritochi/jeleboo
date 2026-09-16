@@ -20,7 +20,6 @@ Format per item: `- [size guess] Description (how it was noticed)`
 - [medium] Dominant pollutant shown in the UI — **checked: not a pure display change.** WAQI's `dominentpol` field is neither fetched (`parseWaqiResponse` never reads it) nor stored (`readings` has no column), so the card adds parser support + a `readings.dominant_pollutant` column (migration) + route/UI passthrough (builder QoL brainstorm + code check)
 - [medium] Trend-aware early warning using existing `readings` history — the window and slope threshold that count as "climbing fast" are defined **in the card**, not while building (builder QoL brainstorm, post-ship)
 - [medium] Snooze/mute notifications for a set period — needs a `muted_until`-style `devices` field; card defines the allowed durations and where the control lives (builder QoL brainstorm, post-ship)
-- [medium] City-change detection — when GPS moves significantly, re-resolve the station and offer the new reading; what GPS distance counts as "significant" is defined **in the card** (builder QoL brainstorm, post-ship)
 
 ### [needs architecture.md first] — no Work Cards without builder sign-off on the architecture update
 
@@ -39,9 +38,11 @@ Format per item: `- [size guess] Description (how it was noticed)`
 
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
 
+## Promoted
+
 - [medium] → `work-cards/13-quiet-hours.md` — quiet hours for notifications (per-device UTC window in the `devices` schema) with the 300+ hazardous override explicitly bypassing quiet hours (promoted 2026-09-15 — builder priority 1 of 3: quiet hours → city-change detection → DOE guidance line)
 
-## Promoted
+- [medium] → `work-cards/14-city-change-detection.md` — surface a calm "location updated" hint when a fresh GPS fix resolves to a different station than last time; the card defines the significant-move threshold as **station identity** (not raw GPS distance — station flips are the app's resolution unit, ~10–15 km+ in the 65-station network), plus a small `devices.last_station_name` record (promoted 2026-09-15 — builder priority 2 of 3)
 
 - [S] → `work-cards/10-city-fallback-station-coordinates.md` — the city-station fallback path in `GET /api/reading` returns `lat: 0, lng: 0` instead of the station's real coordinates, so a device's recorded location (via the frontend's `POST /api/devices` at Card 08) becomes `0,0 — the poll job then resolves future readings against `nearestCityStation(0,0)` rather than the user's actual Malaysian location (noticed during Card 08 live deploy verification — non-blocking for v1 proof, poll still fires, but the wrong station may be used)
 

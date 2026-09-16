@@ -28,4 +28,8 @@ export function migrate(db: Database): void {
     // The frontend converts the user's local times at save time.
     addColumnIfMissing(db, "devices", "quiet_start_utc", "INTEGER");
     addColumnIfMissing(db, "devices", "quiet_end_utc", "INTEGER");
+    // Added in Work Card 14: the last station a device resolved against —
+    // a per-device city record (Card 14's location-update hint is computed
+    // client-side from the reading cache).
+    addColumnIfMissing(db, "devices", "last_station_name", "TEXT");
 }

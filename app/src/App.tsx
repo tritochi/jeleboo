@@ -28,7 +28,7 @@ function storedNotificationsEnabled(): boolean {
 
 function App() {
     const [retry, setRetry] = useState(0);
-    const { status, reading, error } = useReading(retry);
+    const { status, reading, error, station_changed } = useReading(retry);
     const [offline, setOffline] = useState(!navigator.onLine);
     const [threshold, setThreshold] = useState<number | null>(null);
     // Map & Station Explorer is a second screen (design.md) — swapping views
@@ -84,6 +84,7 @@ function App() {
                         push_subscription: { placeholder: true },
                         lat: reading?.lat,
                         lng: reading?.lng,
+                        station_name: reading?.station_name, // Card 14: per-device city record
                     }),
                 });
 
@@ -140,7 +141,14 @@ function App() {
                 {status === "loading" && !reading ? (
                     <LoadingCard />
                 ) : status === "ready" && reading ? (
-                    <ReadingCard reading={reading} />
+                    <>
+                        <ReadingCard reading={reading} />
+                        {station_changed ? (
+                            <p className="station-changed" role="status">
+                                Location updated — now showing {reading.station_name}
+                            </p>
+                        ) : null}
+                    </>
                 ) : (
                     <ErrorCard
                         message={error ?? "Could not load a reading."}

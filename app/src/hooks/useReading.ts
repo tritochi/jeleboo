@@ -22,6 +22,21 @@ export interface ReadingState {
     status: "loading" | "ready" | "error";
     reading: Reading | null;
     error: string | null;
+    /** Card 14: true when this load resolved to a different station than the
+     * last cached one (never true on a first-ever load). */
+    station_changed: boolean;
+}
+
+/**
+ * Pure comparison for the location-update hint (Card 14): a significant move
+ * is a *different resolved station* — station identity is the app's
+ * resolution unit, so no raw GPS-distance math. Null-safe: no previous
+ * station means no hint.
+ */
+export function stationChanged(previousName: string | null | undefined, nextName: string): boolean {
+    if (!previousName) return false;
+    if (typeof nextName !== "string" || nextName.length === 0) return false;
+    return previousName !== nextName;
 }
 
 const CACHE_KEY = "jeleboo:last-reading";
@@ -52,6 +67,7 @@ export function useReading(trigger = 0) {
         status: "loading",
         reading: readCache(),
         error: null,
+        station_changed: false,
     });
 
     useEffect(() => {
@@ -86,6 +102,7 @@ export function useReading(trigger = 0) {
                     status: prev.reading ? "ready" : "error",
                     reading: prev.reading,
                     error: prev.reading ? null : "Location unavailable. Showing last known reading.",
+                    station_changed: false,
                 }));
                 return;
             }
@@ -97,8 +114,11 @@ export function useReading(trigger = 0) {
                 const data = (await res.json()) as Reading;
 
                 if (cancelled) return;
+                // Compare against the cache BEFORE overwriting it (Card 14).
+                const previous = readCache();
+                const changed = stationChanged(previous?.station_name, data.station_name);
                 writeCache(data);
-                setState({ status: "ready", reading: data, error: null });
+                setState({ status: "ready", reading: data, error: null, station_changed: changed });
             } catch {
                 if (cancelled) return;
                 // Network/upstream failure: fall back to the last known reading
@@ -109,6 +129,7 @@ export function useReading(trigger = 0) {
                     error: prev.reading
                         ? "Could not refresh. Showing last known reading."
                         : "Could not reach the air-quality source. Please try again shortly.",
+                    station_changed: false,
                 }));
             }
         }

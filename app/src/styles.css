@@ -710,6 +710,14 @@ body {
     }
 }
 
+/* ---- Location-update hint (Card 14) ---- */
+
+.station-changed {
+    margin: -0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted); /* informational only — no color coding, no alarm */
+}
+
 /* ---- Quiet hours (Card 13) — inside the threshold section ---- */
 
 .quiet-hours {

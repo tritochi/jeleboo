@@ -57,6 +57,7 @@ Calm.
   - Loading: skeleton band + muted "Fetching latest reading…", never a blank screen.
   - Stale: the last cached reading stays visible with "Stale — last updated X ago" in dark amber `#BF360C` (≥ 4.5:1 on `#FAFAF7`).
   - Offline: clear error card "Can't reach the air-quality feed" + a Retry button; never a broken number.
+- Location-update hint (Card 14): when a fresh GPS fix resolves to a different station than the last cached one, a single muted line under the reading card — "Location updated — now showing \<station name\>". Informational only: no color coding, no alarm styling, no action required; first-ever load and same-station loads show nothing.
 
 ## Mobile Rules
 

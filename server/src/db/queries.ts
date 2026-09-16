@@ -53,6 +53,7 @@ export interface Device {
     last_lng: number | null;
     quiet_start_utc: number | null;
     quiet_end_utc: number | null;
+    last_station_name: string | null;
     created_at: string;
 }
 
@@ -90,6 +91,12 @@ export function setDeviceQuietHours(
     db.prepare(`
         UPDATE devices SET quiet_start_utc = ?, quiet_end_utc = ? WHERE id = ?
     `).run(startUtc, endUtc, id);
+}
+
+export function setDeviceStation(id: string, stationName: string): void {
+    db.prepare(`
+        UPDATE devices SET last_station_name = ? WHERE id = ?
+    `).run(stationName, id);
 }
 
 export function getDevice(id: string): Device | null {
