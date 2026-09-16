@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Done — verified locally and live on Railway; hint shipped on Vercel, builder device check pending (see `build-status.md`)
+Done — builder-verified on the live hosts (2026-09-15)
 
 ## Why
 
