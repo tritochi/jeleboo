@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-In progress
+Done — verified locally and live on Railway; hint shipped on Vercel, builder device check pending (see `build-status.md`)
 
 ## Why
 
@@ -70,11 +70,14 @@ design.md's reading-card section gains the location-update hint bullet
 
 ## Done-when
 
-- [ ] Opening the app in a new city shows the hint with the new station;
-      first-ever load and same-station loads show nothing.
-- [ ] `POST /api/devices` stores a validated `last_station_name`.
-- [ ] `bun test` green both halves; both `tsc` clean; build clean; CI green.
-- [ ] Live on Vercel/Railway; builder device check.
+- [x] Opening the app in a new city shows the hint with the new station;
+      first-ever load and same-station loads show nothing (pure helper
+      unit-tested; hint verified present in the live bundle).
+- [x] `POST /api/devices` stores a validated `last_station_name` — verified
+      live (stored + returned in `GET /api/devices/:id`; >200 chars → 400).
+- [x] `bun test` green both halves (server 62/62, app 10/10); both `tsc`
+      clean; build clean; CI green (`07a23db`).
+- [x] Live on Vercel/Railway; builder device check pending to close the card.
 
 ## Learner checkpoint (per prompts/06)
 

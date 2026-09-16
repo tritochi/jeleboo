@@ -97,6 +97,13 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   skipped, but a crossing still active when quiet hours end is delivered by
   the next poll. **Hazardous (300+) alerts always break through.** Verified
   live: 1 crossing suppressed with quiet hours on, delivered after disabling.
+- **Location-change hint (Card 14):** when you open the app somewhere that
+  resolves to a different air-quality station than last time, a quiet line
+  under the reading card says so — "Location updated — now showing \<station\>"
+  — no alarm, no action needed (the reading was already correct). The device
+  also records its last station server-side for future city-aware features.
+  A significant move is defined as a *different resolved station*, not a GPS
+  distance — station identity is what the app resolves against.
 - **Map Screen (Card 12):** the map is live as a second screen at
   https://jeleboo.vercel.app — a quiet "Map of Malaysian stations" control
   below the reading card opens it; the ~160 kB Leaflet chunk is lazy-loaded

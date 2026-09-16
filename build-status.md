@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — QoL queue: quiet hours (Card 13, builder check pending) → city-change detection → DOE guidance line
-- Current work card: `work-cards/13-quiet-hours.md` (implemented + live-verified; builder device check pending)
+- Current phase: Iterate — QoL queue: quiet hours (13, done) → city-change detection (Card 14, builder check pending) → DOE guidance line
+- Current work card: `work-cards/14-city-change-detection.md` (implemented + live-verified; builder device check pending)
 
 ## Completed work cards
 
@@ -32,27 +32,23 @@
 
 ## In progress
 
-- **Card 13 (quiet hours) implemented + live-verified, builder device check
-  pending** (2026-09-15). Backend: `devices.quiet_start_utc/quiet_end_utc`
-  (UTC minutes, NULL = disabled, idempotent migration); pure tested logic in
-  `jobs/poll.ts` (`isWithinQuietHours` incl. midnight wrap, start inclusive /
-  end exclusive; `shouldSuppressForQuietHours` with the hazardous 300+
-  bypass); poll suppresses non-hazardous dispatches inside the window by
-  **skipping both the push and the notification_log row** — deliberate
-  semantics: hysteresis state stays untouched, so a crossing still active
-  when quiet hours end is delivered by the next poll, and crossings that
-  begin+end inside the window never spam the morning;
-  `PollResult.notificationsSuppressed` added. Route
-  `PUT /api/devices/:id/quiet-hours` (validated: integers 0–1439, start ≠
-  end, 400/404 paths); `GET /api/devices/:id` returns the fields. Frontend:
-  `QuietHoursSetter` inside the threshold section (design.md bullet added
-  before the UI), local time ↔ UTC conversion at save/restore, default
-  22:00–07:00, plain-language hazardous-bypass note. Verified: `bun test`
-  62/62 (13 new), both `tsc` clean, build clean, CI green (`dcb794d`), and
-  live on Railway (register → enable window → poll: `devicesChecked 13,
-  suppressed 1, sent 0, errors []` → disable). Vercel serving the new
-  bundle. Next in the builder's priority queue: city-change detection →
-  DOE guidance line — promoted one at a time.
+- **Card 14 (city-change detection) implemented + live-verified, builder
+  device check pending** (2026-09-15). The significant-move threshold was
+  defined in the card as **station identity, not raw GPS distance** — station
+  flips are the app's resolution unit (~10–15 km+ across the 65-station
+  network); a distance constant would duplicate that signal with worse edge
+  cases. Frontend: `useReading` compares the fresh reading's `station_name`
+  against the localStorage cache read before overwrite (null-safe pure helper
+  `stationChanged`, unit-tested) and App renders one muted line under the
+  reading card — "Location updated — now showing \<station\>" (design.md
+  bullet added before the UI). Backend: `devices.last_station_name` column
+  (idempotent migration); `POST /api/devices` accepts an optional validated
+  `station_name` (trimmed, ≤ 200 chars, else 400) and `GET /api/devices/:id`
+  returns it — a per-device city record; poll job untouched. Verified:
+  server `bun test` 62/62, app `bun test` 10/10, both `tsc` clean, build
+  clean, CI green (`07a23db`), and live on Railway (station stored + returned;
+  invalid → 400) + Vercel (hint in bundle). Next in the builder's priority
+  queue: DOE guidance line — promoted one at a time.
 
 ## Blockers
 
