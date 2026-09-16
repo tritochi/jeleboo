@@ -58,6 +58,7 @@ Calm.
   - Stale: the last cached reading stays visible with "Stale — last updated X ago" in dark amber `#BF360C` (≥ 4.5:1 on `#FAFAF7`).
   - Offline: clear error card "Can't reach the air-quality feed" + a Retry button; never a broken number.
 - Location-update hint (Card 14): when a fresh GPS fix resolves to a different station than the last cached one, a single muted line under the reading card — "Location updated — now showing \<station name\>". Informational only: no color coding, no alarm styling, no action required; first-ever load and same-station loads show nothing.
+- DOE guidance line (Card 15): a static, muted, always-visible line under the reading card (below the location-update hint) — "Per Malaysia's National Haze Action Plan (Malaysian API scale — the reading above is US AQI): outdoor activities are suspended above API 100, and schools close above API 200." Attribution names the Plan (DOE sets the reading, the Plan sets the actions); the scale caveat is mandatory copy, never dropped; no per-band dynamic logic.
 
 ## Mobile Rules
 

@@ -718,6 +718,15 @@ body {
     color: var(--text-muted); /* informational only — no color coding, no alarm */
 }
 
+/* ---- DOE guidance line (Card 15) ---- */
+
+.doe-guidance {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-muted); /* reference info — calm, not an alarm */
+}
+
 /* ---- Quiet hours (Card 13) — inside the threshold section ---- */
 
 .quiet-hours {

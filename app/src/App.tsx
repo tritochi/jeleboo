@@ -148,6 +148,17 @@ function App() {
                                 Location updated — now showing {reading.station_name}
                             </p>
                         ) : null}
+                        {/* DOE guidance line (Card 15): copy sourced from the
+                            National Haze Action Plan via the builder-verified
+                            RTM/DOE citation — see work-cards/15. The scale
+                            caveat is mandatory: DOE thresholds are on the
+                            Malaysian API scale, the reading is US AQI. */}
+                        <p className="doe-guidance">
+                            Per Malaysia's National Haze Action Plan (Malaysian
+                            API scale — the reading above is US AQI): outdoor
+                            activities are suspended above API 100, and schools
+                            close above API 200.
+                        </p>
                     </>
                 ) : (
                     <ErrorCard
