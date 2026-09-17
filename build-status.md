@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — QoL queue: quiet hours (13, done) → city-change detection (14, done) → DOE guidance line (Card 15, **blocked on copy verification**)
-- Current work card: `work-cards/15-doe-guidance-line.md` (blocked — awaiting builder decision, see the card's Research log)
+- Current phase: Iterate — QoL queue shipped (13 quiet hours, 14 city-change, 15 DOE guidance line); backlog is the queue
+- Current work card: none (15 shipped pending builder's visual check; next work comes from `backlog.md` or new usage)
 
 ## Completed work cards
 
@@ -31,23 +31,19 @@
 - [x] 12 Map Screen — Station Explorer (post-ship) — lazy `React.lazy` Leaflet screen (Leaflet/OSM code verified absent from the main bundle; `MapScreen-*.js/.css` separate precached chunks), quiet "Map of Malaysian stations" secondary control, "Back to reading" control (design gap documented in design.md first), debounced 300 ms search with 44px+ rows and viewing-only selection, six-band circle pins (~22px visual / 44px hit target, colors from the existing `--sev-<band>-fill/-text` variables), station card in the reading card's fixed order, all four design.md states, always-visible OSM/WAQI attribution. App `tsc` clean; CI green (`ad488ef`); live on Vercel; builder passed the manual device check incl. 320px.
 - [x] 13 Quiet Hours (post-ship) — per-device `quiet_start_utc`/`quiet_end_utc` (UTC minutes, NULL = disabled) with pure tested window logic (midnight wrap, start inclusive / end exclusive) and the **hazardous 300+ bypass**; the poll skips both the push and the `notification_log` row inside the window (hysteresis untouched — a crossing still active when quiet hours end is delivered by the next poll); `PUT /api/devices/:id/quiet-hours` (validated) + UI control in the threshold section (design.md bullet added first). `bun test` 62/62; live-verified on Railway (13 devices checked, 1 suppressed, 0 sent, 0 errors); builder-verified.
 - [x] 14 City-Change Detection (post-ship) — a quiet "Location updated — now showing \<station\>" line under the reading card when a fresh GPS fix resolves to a different station than the last cached one (first-ever load and same-station loads show nothing). Significant-move threshold defined in the card as **station identity, not raw GPS distance** (station flips are the resolution unit). `devices.last_station_name` column + optional validated `station_name` on `POST /api/devices` (returned by `GET /api/devices/:id`). App `bun test` 10/10 (new `stationChanged` cases), server 62/62, both `tsc` clean, CI green (`07a23db`), live on Railway + Vercel; builder-verified.
+- [ ] 15 DOE Guidance Line (post-ship) — **shipped on the builder's option-1 sourcing decision** after the verification blocker: a static muted line under the reading card citing the **National Haze Action Plan** — "outdoor activities are suspended above API 100, and schools close above API 200" — with the mandatory scale caveat (Malaysian API scale vs the US AQI reading shown). API 150/NADMA stays a sourcing note, not UI copy. Agent-side fetches of the PTJK PDF and RTM were bot-blocked; the verification chain (RTM quoting DOE Deputy DG Azuri Azizah Saedon + corroborating outlets) is builder-attested and logged in full in the card. App `bun test` 10/10, both `tsc` clean, CI green (`9211df3`), live on Vercel (`index-CWOfV1tq.js` contains line + caveat + thresholds); builder visual check pending.
 
 ## In progress
 
-- **Card 15 (DOE guidance line) BLOCKED on copy verification** (2026-09-15).
-  The card's own rule — verify current DOE wording before shipping copy, never
-  invent phrasing — could not be satisfied: 7 source attempts (official portal,
-  APIMS/MyEQMS, two archive routes, Wikipedia ×2) verified Malaysia's official
-  API **categories** (0–50 Good, 51–100 Moderate, 101–200 Unhealthy, 201–300
-  Very Unhealthy, 301–500 Hazardous, >500 emergency) but found **no reachable
-  official wording** for the three brainstormed thresholds (100 outdoor /
-  150 sustained-24h disaster / 200 schools). A second blocker was documented:
-  the app displays **US AQI** while DOE thresholds are on the **Malaysian API
-  scale** — any shipped line must label the scales explicitly. No copy or code
-  was shipped. Awaiting the builder's decision (official source link /
-  verified-API-categories fallback / drop the item) — see
-  `work-cards/15-doe-guidance-line.md`'s Research log and Options. Cards 13
-  (quiet hours) and 14 (city-change detection) are done and builder-verified.
+- Nothing. The builder's QoL priority queue is fully shipped (2026-09-15):
+  Card 13 quiet hours, Card 14 city-change detection, and Card 15 the DOE
+  guidance line (shipped on the builder's option-1 sourcing decision — see
+  the card's Research log for the verification chain, including the
+  agent-side fetch blocks and the mandatory US-AQI/API scale caveat).
+  Remaining queue: `backlog.md` (small ×6, medium ×3, needs-architecture ×3,
+  blocked ×1, cross-cutting ×2, plus the post-v1 Supabase `[L]`); new items
+  go through `prompts/09-iterate.md` → architecture pass (if structural) →
+  Work Card.
 
 ## Blockers
 

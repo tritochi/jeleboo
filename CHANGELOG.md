@@ -104,6 +104,14 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   also records its last station server-side for future city-aware features.
   A significant move is defined as a *different resolved station*, not a GPS
   distance — station identity is what the app resolves against.
+- **DOE guidance line (Card 15):** a small muted line under the reading card
+  quotes Malaysia's **National Haze Action Plan**: outdoor activities are
+  suspended above API 100, and schools close above API 200. The line always
+  carries a scale caveat — DOE thresholds are on the Malaysian API scale,
+  while the reading shown is US AQI. Sourced on the builder's citation
+  (RTM quoting DOE's Deputy Director-General, corroborated by multiple
+  outlets) after direct fetches of the official PDF were blocked; the full
+  verification chain is recorded in `work-cards/15-doe-guidance-line.md`.
 - **Map Screen (Card 12):** the map is live as a second screen at
   https://jeleboo.vercel.app — a quiet "Map of Malaysian stations" control
   below the reading card opens it; the ~160 kB Leaflet chunk is lazy-loaded
