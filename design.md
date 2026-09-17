@@ -123,6 +123,17 @@ Calm.
 - The map screen still obeys the mobile rules: fits 320px without horizontal
   scroll, single-column stack, thumb-reachable controls, focus order
   search field → map → attribution.
+- Worldwide explore mode (Cards 16–17): the "Map of Malaysian stations"
+  button renames to **"Explore stations"**; markers come from live viewport
+  queries worldwide — Malaysia included — with the same six-band palette and
+  the same fixed-order station card; Malaysia is not visually singled out.
+  All existing Map Screen rules (states, attribution, 320px, viewing-only
+  search) carry over unchanged.
+- World overview layer (Cards 18–19): a low-fidelity global layer shown
+  **only below zoom 4** — ~10px simplified dots, no dark stroke, same
+  six-band palette, tappable into the same station card (label always paired
+  with color). At zoom ≥ 4 it is dropped entirely and the live viewport
+  markers take over; the two layers never appear at the same zoom.
 
 ## Anti-Slop Rules
 

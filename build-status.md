@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — QoL queue shipped (13 quiet hours, 14 city-change, 15 DOE guidance line); backlog is the queue
-- Current work card: none (15 shipped pending builder's visual check; next work comes from `backlog.md` or new usage)
+- Current phase: Iterate — worldwide explore + world overview authored (cards 16–19); build starts at 16
+- Current work card: `work-cards/16-worldwide-map-view.md` (authored, next to build)
 
 ## Completed work cards
 
@@ -41,20 +41,33 @@
   nothing extractable pre-browser) and the btm.doe.gov.my research channel —
   closure notes in `project-brief.md`'s Later list and `architecture.md`'s
   Constraints section. WAQI is the data source, decided.
-- **CORRECTION — Malaysia bounds recheck (2026-09-17), stops the worldwide-map
-  proposal before any Work Card:** rebuilt Peninsular/Borneo/KL boxes with the
-  now-confirmed coordinate order (`lat1,lng1,lat2,lng2`) and the production
-  token return **real station data** — Peninsular 57 (incl. Indonesian
-  stations, e.g. Batam → the MY filter is still needed), Borneo 20, tight KL
-  7; endpoint provably alive (NY control = 19). This **invalidates the
-  explore-mode addendum's core premise**: "Malaysia specifically returns 0"
-  was an artifact of the original test (order B / construction), not a
-  bounds-index gap — and the "MY keeps its search-based path as the special
-  case" split is therefore obsolete; bounds can serve Malaysia too. Per the
-  task instruction the proposal was **not** amended and **no Work Cards were
-  written** — the explore-mode addendum above needs a rewrite (bounds for
-  Malaysia as well, with MY filter + uid dedupe), awaiting the builder's
-  go-ahead.
+- *Recheck trail (2026-09-17): the original worldwide-map addendum assumed
+  Malaysia returns 0 from bounds; a rebuilt-boxes recheck proved otherwise
+  (Peninsular 57 / Borneo 20 / tight KL 7, order A, production token),
+  stopping the proposal before any cards were written — superseded by the two
+  confirmed entries below.*
+- **Explore mode REWRITTEN + CONFIRMED (2026-09-17):** the addendum now reads
+  bounds-derived markers **worldwide including Malaysia** — no special case.
+  The two builder-requested checks passed and are recorded in the section:
+  (1) Brunei containment — bounds items carry no `country`/`url` fields, so
+  the MY filter is a **name-suffix** rule (", Malaysia"; 63/77 in the two MY
+  boxes; Batam and any Brunei entry fail it by construction); (2) Card-02
+  coverage — bounds returns **65/73** table uids, so the MY portion is a
+  **union** with the Card-02 table (all 73 preserved + new finds, uid dedupe,
+  table coordinates as stable overlay). Mechanics: `GET /api/map-view`
+  (order-A normalized, 0.5°-grid cache, 60-min TTL, 30°/side cap,
+  pan/zoom-settle debounce, zoom ≥ 4, 30/min/IP limiter); **`/api/stations`
+  retired as the map's marker source** (stays deployed for `/api/search` and
+  reading pipeline). Button renames to "Explore stations". Brief caveats
+  applied (Now map line + Non-Goals exception); design.md bullets added for
+  both features. **Work Cards 16–17 (explore mode: backend, then UI) are the
+  confirmed next build.**
+- **World overview layer CONFIRMED (2026-09-17):** one-per-city over chunked
+  `/map/bounds` (30°×30° cells, sub-divide on the 1,024 cap; EU 1,024,
+  India/SEA 50, US 370), estimated ~1,000–1,500 entries (exact count at
+  first refresh), **6-hour** refresh (`WORLD_OVERVIEW_HOURS`),
+  `GET /api/world-overview`, rendered **only below zoom 4** with simplified
+  markers. Builds on the explore mode; **Work Cards 18–19 follow 16–17.**
 - **World overview layer (Task, 2026-09-17) — proposal awaiting builder
   confirmation** (`architecture.md`, "World overview layer for zoomed-out
   views"): fixes the below-zoom-4 emptiness without touching the confirmed

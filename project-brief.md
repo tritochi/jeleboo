@@ -41,7 +41,10 @@ Open the installed PWA — or a plain browser tab, no install required to just l
 - Live map of Malaysian station AQI pins plus location search with dropdown
   suggestions (Leaflet + OpenStreetMap tiles, marker data from WAQI
   `/search`; confirmed in `architecture.md`'s "Map & Station Explorer" —
-  search is viewing-only in v1; Work Cards 11–12)
+  search is viewing-only in v1; Work Cards 11–12). Work Cards 16–17 extend
+  the map to a **worldwide explore mode** (bounds-based; reading, alerts,
+  and resolution remain Malaysia-only — see `architecture.md`'s "Worldwide
+  explore mode")
 
 ### Later
 
@@ -54,7 +57,9 @@ Open the installed PWA — or a plain browser tab, no install required to just l
 
 - User accounts, login, or multi-user sync — a device's push subscription is its identity, nothing more
 - Payments
-- Coverage outside Malaysia
+- Coverage outside Malaysia (the map's **worldwide explore view** is excepted
+  — see `architecture.md`'s "Worldwide explore mode"; the reading, alerts,
+  and resolution pipeline remain Malaysia-only)
 - A native app-store build (Expo/React Native was the original idea; PWA is the deliberate, later choice — trades a small iOS caveat for zero app-store review and one shared codebase)
 
 ## Assumptions

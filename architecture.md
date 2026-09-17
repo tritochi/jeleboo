@@ -271,11 +271,9 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
 > Status: **proposed, not built** (2026-09-17). Narrow scope: fixes the gap
 > where the map is empty below the zoom ≥ 4 guard. Explicitly **not** "load
 > every WAQI station", and **no change** to the live viewport-query behavior
-> at zoom ≥ 4, which stays exactly as confirmed. Note: this addendum's
-> dataset findings interact with the Malaysia recheck correction above — the
-> overview layer naturally includes Malaysia too, and the explore-mode
-> addendum needs its own rewrite (see that correction) before either goes to
-> Work Cards.
+> at zoom ≥ 4, which stays exactly as confirmed. Builds on the now-confirmed
+> and rewritten "Worldwide explore mode" section below it (the Malaysia
+> recheck correction is resolved there).
 
 **The dataset ladder, walked and stated (2026-09-17):**
 
@@ -326,68 +324,82 @@ markers are visually distinct from live ones so the two never read as equally
 precise: smaller (~10px dots, no dark stroke), same six-band palette, still
 band+label paired and tappable into the same station card.
 
-### Worldwide explore mode (PROPOSED — needs rewrite: premise invalidated by the Malaysia recheck, see `build-status.md`)
+### Worldwide explore mode (CONFIRMED by the builder, 2026-09-17 — after the Malaysia recheck rewrite)
 
-> Status: **proposed, not built** (2026-09-15). The bounds question the whole
-> shape depends on has now been answered with a live test — see the evidence
-> table. No Work Card exists yet; nothing below is confirmed.
+> Status: **confirmed** (2026-09-17). Bounds serves Malaysia too (recheck:
+> Peninsular 57 / Borneo 20 / tight KL 7 with order A and fresh boxes — the
+> original "Malaysia returns 0" was an artifact of the original test's
+> construction, not a WAQI gap), so markers are **bounds-derived worldwide,
+> Malaysia included** — no Malaysia special case. The two builder-requested
+> verification checks are recorded below. Work Cards 16–17 implement this;
+> the world overview layer (separate addendum above... below) builds on it.
 
 **Scope boundary, stated explicitly:** only the *map/explore view* goes
 worldwide. The core reading, threshold notifications, station resolution, and
 Malaysia-focused branding/meta stay exactly as shipped — `/api/reading` still
 rejects non-Malaysia coordinates, the poll/alerts pipeline is unchanged, and
-no branding or meta description changes. One UI consequence is flagged: the
-current "Map of Malaysian stations" button label becomes wrong under this
-mode and should be renamed (e.g. "Explore stations") in any implementing card.
+no branding or meta description changes (the brief caveat edits below cover
+the two document lines). One UI consequence is folded into the cards: the
+"Map of Malaysian stations" button renames to **"Explore stations"**.
 
-**The bounds test (real production token, 2026-09-15):**
+**Bounds evidence (production token, 2026-09-15/17):**
 
-| Box | Coordinate order | Result |
+| Box | Order | Result |
 |---|---|---|
-| US: New York / NJ metro (`40.3,-74.6,41.0,-73.5`) | A: `lat1,lng1,lat2,lng2` | **ok, 19 stations** (e.g. Maspeth, New York) |
-| Europe: NW France → NRW (`48.0,2.0,52.5,7.5`) | A | **ok, 237 stations** (Picardie, France) |
-| India: Delhi (`28.2,76.8,29.2,78.6`) | A | **ok, 24 stations** (Wazirpur, Delhi) |
-| All three boxes above | B: reversed (`lng1,lat1,lng2,lat2`) | ok but **0 stations** — order B is silently wrong |
-| EU box, **demo** token | A | **error** — the demo token carries restrictions the production token doesn't |
+| US: New York / NJ metro (`40.3,-74.6,41.0,-73.5`) | A: `lat1,lng1,lat2,lng2` | **ok, 19 stations** |
+| Europe: NW France → NRW (`48.0,2.0,52.5,7.5`) | A | **ok, 237 stations** |
+| India: Delhi (`28.2,76.8,29.2,78.6`) | A | **ok, 24 stations** |
+| Malaysia: Peninsular / Borneo / tight KL (fresh, 2026-09-17) | A | **ok, 57 / 20 / 7 stations** |
+| All boxes | B: reversed | ok but **0 stations** — order B is silently wrong |
+| EU box, **demo** token | A | **error** — demo-token restriction, not an API breakage |
 
-Conclusions: the original Card-15-era finding ("bounds broken, even a dense
-EU box errors") was an artifact of the demo token; with the production token
-bounds **works outside Malaysia**. Malaysia specifically still returns 0
-(verified earlier with the production token in both orders) — a gap in WAQI's
-bounds index, not a global breakage. That resolves the fork to the first
-shape: **live viewport queries for the worldwide view, with Malaysia keeping
-its search-based cached path as the known-reliable special case.**
+Item shape on bounds responses: `{ lat, lon, uid, aqi (string), station: {
+name, time } }` — **no `station.country` and no `station.url` fields**, so
+the `/search`-style country/url filter cannot be reused here.
 
-**Proposed mechanics (Shape 1):**
+**Check 1 — Brunei containment (Borneo box):** zero Brunei-named entries
+exist in the Malaysia bounds boxes today, and any that appeared would be
+excluded **by construction**: the MY filter is a *name-suffix* rule
+(`station.name` ends with `, Malaysia` — 63 of 77 items in the two Malaysia
+boxes pass; "Batam, Indonesia" and any "…, Brunei" name fail it). Confirmed
+cannot leak.
+
+**Check 2 — Card-02 table coverage:** bounds returns **65 of the 73** table
+stations (uids checked directly). Missing 8: Muar (2579), SMK Tanjung Chat
+(2584), Jalan Tasek Ipoh (2594), USM Pulau Pinang (2602), Cheras KL (2626),
+Putrajaya (2628), Perai (5778), US Embassy KL (14721). Therefore the MY
+portion is a **union, not a filter pass**: bounds-MY stations (name-filtered)
+**∪ all Card-02 table stations missing from the bounds result** (carrying
+their verified coordinates). All 73 known stations stay on the map, plus any
+new bounds finds; dedupe by uid with the Card-02 table's coordinates as the
+stable overlay when a uid matches.
+
+**Confirmed mechanics:**
 
 - **New backend route** `GET /api/map-view?lat1,lng1,lat2,lng2` — proxies
-  WAQI `/map/bounds` with the production token (same never-expose-the-key
-  pattern), **coordinate order A only** (order B returns 0 silently —
-  documented here and enforced server-side by always normalizing the client's
-  viewport into lat1,lng1,lat2,lng2).
-- **Merged response:** if the viewport intersects Malaysia, the response
-  includes the existing cached 65-station MY set (from `sources/stations.ts`,
-  unchanged) alongside the live-bounds results for everywhere else; markers
-  deduped by uid.
-- **Caching & call volume:** no schedule and no pre-population — one upstream
-  call per *distinct rounded viewport* per TTL. Viewports round to a 0.5°
-  grid for the cache key; TTL **60 minutes** on the same freshness-need
-  grounds as `MAP_CACHE_MINUTES` (an exploratory map tolerates an hour of
-  staleness; quota is not the constraint — WAQI documents 1,000 req/s).
-  Cached-last-good is served stale while a refresh runs, identical to
-  `stations.ts`. A typical session generates a handful of distinct viewports.
-- **Guards:** bounds area cap (reject boxes wider/taller than ~30° per side —
-  stops a world-zoom box returning hundreds of stations in one call); client
-  only queries on pan/zoom settle (~500 ms debounce) and at zoom ≥ 4;
-  `country` filter unnecessary here (bounds are inherently geographic), but
-  non-MY results flow only through this read-only view. Existing 30/min/IP
-  rate limiter applies.
-- **project-brief.md implications (recommendation, not yet applied):** the
-  Now list's "Live map of Malaysian station AQI pins…" line needs a caveat —
-  proposed wording: "…plus a worldwide explore mode on the map (bounds-based;
-  reading, alerts, and resolution remain Malaysia-only)". Non-Goals' "Coverage
-  outside Malaysia" gets the same "(map explore view excepted)" note, or the
-  two documents contradict each other.
+  WAQI `/map/bounds` with the production token (never-expose-the-key
+  pattern); the server always normalizes the client viewport into order-A
+  `lat1,lng1,lat2,lng2` (order B silently returns 0).
+- **MY selection inside the merged response:** bounds items whose
+  `station.name` ends with `, Malaysia`, **unioned with the Card-02 table**
+  (the 65/73 coverage rule above); Indonesian/Bruneian/other neighbors
+  excluded by the same suffix rule. World portion = all remaining bounds
+  items. Dedupe by uid across the union.
+- **`/api/stations` retired as the map's marker source** once this ships —
+  the route and its cached set stay deployed for now, but the map stops
+  calling it; `/api/search` (dropdown) and the reading pipeline are
+  unaffected.
+- **Caching & call volume:** no schedule, no pre-population — one upstream
+  call per *distinct 0.5°-rounded viewport* per **60-minute** TTL (same
+  freshness-need grounds as `MAP_CACHE_MINUTES`; quota is not the constraint
+  — WAQI documents 1,000 req/s); cached-last-good served stale while a
+  refresh runs, identical to `stations.ts`.
+- **Guards:** reject boxes wider/taller than 30° per side (400); client
+  queries only on pan/zoom settle (~500 ms debounce) at zoom ≥ 4; existing
+  30/min/IP rate limiter.
+- **project-brief.md caveats (applied with this confirmation):** the Now
+  list's map line and the Non-Goals' "Coverage outside Malaysia" line both
+  carry the explore-view exception so the documents agree with this section.
 
 ## Testing Strategy
 
