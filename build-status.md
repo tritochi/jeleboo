@@ -41,19 +41,19 @@
   nothing extractable pre-browser) and the btm.doe.gov.my research channel —
   closure notes in `project-brief.md`'s Later list and `architecture.md`'s
   Constraints section. WAQI is the data source, decided.
-- **Worldwide map (Task, 2026-09-15) — proposal awaiting builder
-  confirmation.** The bounds question is answered with a live test
-  (production token): `/map/bounds` **works outside Malaysia** (NY 19, NW-EU
-  237, Delhi 24 stations) with coordinate order `lat1,lng1,lat2,lng2` — order
-  B silently returns 0, and the demo token errors (the original "broken"
-  finding was a demo-token artifact). Malaysia specifically returns 0 — a
-  bounds-index gap, so the fork resolves to **Shape 1**: live viewport
-  queries for a worldwide explore view, Malaysia keeping its search-based
-  cached path. Proposed as an addendum to `architecture.md`'s "Map &
-  Station Explorer" section (mechanics, 0.5°-grid/60-min cache, area cap,
-  merge with the MY set, button-label rename flag, and the recommended
-  `project-brief.md` caveats — not yet applied). No Work Card until the
-  builder confirms the addendum.
+- **CORRECTION — Malaysia bounds recheck (2026-09-17), stops the worldwide-map
+  proposal before any Work Card:** rebuilt Peninsular/Borneo/KL boxes with the
+  now-confirmed coordinate order (`lat1,lng1,lat2,lng2`) and the production
+  token return **real station data** — Peninsular 57 (incl. Indonesian
+  stations, e.g. Batam → the MY filter is still needed), Borneo 20, tight KL
+  7; endpoint provably alive (NY control = 19). This **invalidates the
+  addendum's core premise**: "Malaysia specifically returns 0" was an artifact
+  of the original test (order B / construction), not a bounds-index gap — and
+  the "MY keeps its search-based path as the special case" split is therefore
+  obsolete; bounds can serve Malaysia too. Per the task instruction the
+  proposal was **not** amended and **no Work Cards were written** — the
+  explore-mode addendum above needs a rewrite (bounds for Malaysia as well,
+  with MY filter + uid dedupe), awaiting the builder's go-ahead.
 
 ## Blockers
 
