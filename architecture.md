@@ -266,7 +266,67 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
   merge, cache TTL, rate limiter); UI stays on manual localhost checks per the
   existing testing strategy.
 
-### Worldwide explore mode (PROPOSED — awaiting builder confirmation)
+### World overview layer for zoomed-out views (PROPOSED — awaiting builder confirmation)
+
+> Status: **proposed, not built** (2026-09-17). Narrow scope: fixes the gap
+> where the map is empty below the zoom ≥ 4 guard. Explicitly **not** "load
+> every WAQI station", and **no change** to the live viewport-query behavior
+> at zoom ≥ 4, which stays exactly as confirmed. Note: this addendum's
+> dataset findings interact with the Malaysia recheck correction above — the
+> overview layer naturally includes Malaysia too, and the explore-mode
+> addendum needs its own rewrite (see that correction) before either goes to
+> Work Cards.
+
+**The dataset ladder, walked and stated (2026-09-17):**
+
+1. **City-level separately queryable?** **No.** `aqicn.org/api/` (the API
+   documentation page itself) states *"Access to more than 11000
+   station-level and 1000 city-level data"* — but that is intro copy in the
+   JSON API section, not a documented endpoint. The documented JSON endpoints
+   remain `/feed`, `/search`, and bounds ("Stations within a map lat/lng
+   bounds"); there is no city-level endpoint or parameter, and "World ranking
+   and trend" appears only under "will be added during the coming weeks".
+2. **WAQI's public stats-page listings usable?** **No.** `/city/all/` is a
+   1.49 MB single-page **link directory** (a curated "Major Cities" list plus
+   per-country station links — no coordinates, AQI values are placeholders in
+   the list markup); `/rankings/` is **country-level top-10** only. Neither
+   yields AQI + coordinates in a machine-usable form.
+3. **Path ended on (stated explicitly — a deviation from the literal ladder,
+   made possible by the same-day Malaysia recheck that proved bounds works
+   globally):** the **one-per-major-city heuristic applied over chunked
+   `/map/bounds` data**. Chunk the world into 30°×30° cells (72 base cells),
+   sub-divide any cell that returns the per-request cap (see below), and
+   reduce to **one marker per normalized city name** — exactly the
+   one-per-major-city heuristic this task named, but fed by the same working
+   API endpoint the zoom ≥ 4 view already uses: real coordinates, live AQI,
+   no HTML scraping, no hand-maintained city list to keep current.
+
+**Real probe numbers (production token, 2026-09-17):** EU 30×30 chunk =
+**1,024** stations — exactly 2^10, treated as WAQI's per-request cap, so
+dense cells are sub-divided into four sub-cells recursively (max depth 2);
+India/SE-Asia 30×30 = 50; US 30×30 = 370. World raw total is therefore in the
+low thousands; after one-per-city dedupe the overview layer lands at an
+estimated **~1,000–1,500 entries** (corroborated by WAQI's own "1,000
+city-level" figure). The exact count is measured at the first full refresh
+and recorded in the implementing card.
+
+**Refresh cadence: every 6 hours** (`WORLD_OVERVIEW_HOURS` env, default 6, set
+on Railway like `POLL_INTERVAL_MINUTES` + lazy client fetch of
+`GET /api/world-overview` from the server's in-memory cache — same
+stale-last-good pattern as `/api/stations`; disposable data, no SQLite). Why
+6 hours: the task fixes this as a deliberately low-fidelity "something is
+there" layer, not a live one — ≤ 6 h staleness is invisible at a zoomed-out
+pin scale, and the cost is ~72 base calls + sub-divisions ≈ ~100 upstream
+calls per cycle ≈ ~400/day, trivial against WAQI's documented 1,000 req/s
+quota.
+
+**Display:** rendered **only below zoom 4**; at zoom ≥ 4 the layer is dropped
+and the live viewport queries take over with zero logic change. Overview
+markers are visually distinct from live ones so the two never read as equally
+precise: smaller (~10px dots, no dark stroke), same six-band palette, still
+band+label paired and tappable into the same station card.
+
+### Worldwide explore mode (PROPOSED — needs rewrite: premise invalidated by the Malaysia recheck, see `build-status.md`)
 
 > Status: **proposed, not built** (2026-09-15). The bounds question the whole
 > shape depends on has now been answered with a live test — see the evidence

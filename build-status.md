@@ -47,13 +47,26 @@
   token return **real station data** — Peninsular 57 (incl. Indonesian
   stations, e.g. Batam → the MY filter is still needed), Borneo 20, tight KL
   7; endpoint provably alive (NY control = 19). This **invalidates the
-  addendum's core premise**: "Malaysia specifically returns 0" was an artifact
-  of the original test (order B / construction), not a bounds-index gap — and
-  the "MY keeps its search-based path as the special case" split is therefore
-  obsolete; bounds can serve Malaysia too. Per the task instruction the
-  proposal was **not** amended and **no Work Cards were written** — the
-  explore-mode addendum above needs a rewrite (bounds for Malaysia as well,
-  with MY filter + uid dedupe), awaiting the builder's go-ahead.
+  explore-mode addendum's core premise**: "Malaysia specifically returns 0"
+  was an artifact of the original test (order B / construction), not a
+  bounds-index gap — and the "MY keeps its search-based path as the special
+  case" split is therefore obsolete; bounds can serve Malaysia too. Per the
+  task instruction the proposal was **not** amended and **no Work Cards were
+  written** — the explore-mode addendum above needs a rewrite (bounds for
+  Malaysia as well, with MY filter + uid dedupe), awaiting the builder's
+  go-ahead.
+- **World overview layer (Task, 2026-09-17) — proposal awaiting builder
+  confirmation** (`architecture.md`, "World overview layer for zoomed-out
+  views"): fixes the below-zoom-4 emptiness without touching the confirmed
+  zoom ≥ 4 behavior. Dataset ladder walked and stated — city-level is NOT
+  separately queryable (docs quote logged), stats pages not machine-usable,
+  so the path landed on **one-per-major-city over chunked `/map/bounds`
+  data** (30°×30° cells, sub-divide on the 1,024 per-request cap — EU chunk
+  returned exactly 1,024; India/SEA 50; US 370), estimated **~1,000–1,500
+  entries** after dedupe (exact count measured at first refresh), refresh
+  **every 6 hours** (`WORLD_OVERVIEW_HOURS`), rendered **only below zoom 4**
+  with smaller/simplified markers. Not a Work Card until confirmed — and
+  sequencing note: the explore-mode rewrite (above) should land first.
 
 ## Blockers
 
