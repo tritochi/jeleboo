@@ -160,7 +160,7 @@ As in Structure Overview above. Work Cards (once written) will each say exactly 
 - No third-party API key is ever shipped to the browser bundle — only the backend holds the WAQI/IQAir keys.
 - WAQI's data can't be resold or put behind a paywall per their terms — a non-issue for personal/free use, worth remembering if this ever becomes a paid product.
 - IQAir's free tier is 500 calls/day, city-level data only — fine as a secondary/comparison source, too thin to be the primary poll loop.
-- DOE's APIMS is registered as an official open dataset (confirmed via Malaysia's MASTIC open-data catalogue), and DOE does run a formal data-request channel at `btm.doe.gov.my/permohonandata/utama` — but on inspection that channel is a research-data request process (needs an institutional supporting letter, returns historical data for completed studies, not a live feed for an app). Worth revisiting later for credibility/authority, not something to wait on now.
+- DOE's APIMS is registered as an official open dataset (confirmed via Malaysia's MASTIC open-data catalogue), and DOE does run a formal data-request channel at `btm.doe.gov.my/permohonandata/utama` — but on inspection that channel is a research-data request process (needs an institutional supporting letter, returns historical data for completed studies, not a live feed for an app). Worth revisiting later for credibility/authority, not something to wait on now. **Both APIMS paths are now closed (2026-09-15): direct integration was tested three separate times across the project (initial architecture research, Card 15's verification pass, and a re-check that day) and confirmed non-viable via automated access every time — apims.doe.gov.my is a JavaScript app shell ("MyEQMS") with nothing extractable before a browser executes it; and the btm.doe.gov.my channel is research-data only.** WAQI remains the data source — decided, not provisionally. Recorded alongside the btm.doe.gov.my finding so both dead ends sit together instead of one looking resolved and the other looking open.
 - The PWA plumbing is adapted from `augy-studios/pwa-template`, MIT licensed — free to adapt, but the MIT license text should stay noted somewhere in the repo (a `THIRD_PARTY_NOTICES.md` or a comment at the top of `sw.js`/`manifest.json` is enough) since substantial structure from it is reused. The template's own Google Analytics and AdSense IDs must not ship — see "PWA plumbing basis" above.
 
 ## Technical Non-Goals
@@ -265,6 +265,69 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
 - Server-side additions get `bun test` coverage (per-state parsing, MY filter,
   merge, cache TTL, rate limiter); UI stays on manual localhost checks per the
   existing testing strategy.
+
+### Worldwide explore mode (PROPOSED — awaiting builder confirmation)
+
+> Status: **proposed, not built** (2026-09-15). The bounds question the whole
+> shape depends on has now been answered with a live test — see the evidence
+> table. No Work Card exists yet; nothing below is confirmed.
+
+**Scope boundary, stated explicitly:** only the *map/explore view* goes
+worldwide. The core reading, threshold notifications, station resolution, and
+Malaysia-focused branding/meta stay exactly as shipped — `/api/reading` still
+rejects non-Malaysia coordinates, the poll/alerts pipeline is unchanged, and
+no branding or meta description changes. One UI consequence is flagged: the
+current "Map of Malaysian stations" button label becomes wrong under this
+mode and should be renamed (e.g. "Explore stations") in any implementing card.
+
+**The bounds test (real production token, 2026-09-15):**
+
+| Box | Coordinate order | Result |
+|---|---|---|
+| US: New York / NJ metro (`40.3,-74.6,41.0,-73.5`) | A: `lat1,lng1,lat2,lng2` | **ok, 19 stations** (e.g. Maspeth, New York) |
+| Europe: NW France → NRW (`48.0,2.0,52.5,7.5`) | A | **ok, 237 stations** (Picardie, France) |
+| India: Delhi (`28.2,76.8,29.2,78.6`) | A | **ok, 24 stations** (Wazirpur, Delhi) |
+| All three boxes above | B: reversed (`lng1,lat1,lng2,lat2`) | ok but **0 stations** — order B is silently wrong |
+| EU box, **demo** token | A | **error** — the demo token carries restrictions the production token doesn't |
+
+Conclusions: the original Card-15-era finding ("bounds broken, even a dense
+EU box errors") was an artifact of the demo token; with the production token
+bounds **works outside Malaysia**. Malaysia specifically still returns 0
+(verified earlier with the production token in both orders) — a gap in WAQI's
+bounds index, not a global breakage. That resolves the fork to the first
+shape: **live viewport queries for the worldwide view, with Malaysia keeping
+its search-based cached path as the known-reliable special case.**
+
+**Proposed mechanics (Shape 1):**
+
+- **New backend route** `GET /api/map-view?lat1,lng1,lat2,lng2` — proxies
+  WAQI `/map/bounds` with the production token (same never-expose-the-key
+  pattern), **coordinate order A only** (order B returns 0 silently —
+  documented here and enforced server-side by always normalizing the client's
+  viewport into lat1,lng1,lat2,lng2).
+- **Merged response:** if the viewport intersects Malaysia, the response
+  includes the existing cached 65-station MY set (from `sources/stations.ts`,
+  unchanged) alongside the live-bounds results for everywhere else; markers
+  deduped by uid.
+- **Caching & call volume:** no schedule and no pre-population — one upstream
+  call per *distinct rounded viewport* per TTL. Viewports round to a 0.5°
+  grid for the cache key; TTL **60 minutes** on the same freshness-need
+  grounds as `MAP_CACHE_MINUTES` (an exploratory map tolerates an hour of
+  staleness; quota is not the constraint — WAQI documents 1,000 req/s).
+  Cached-last-good is served stale while a refresh runs, identical to
+  `stations.ts`. A typical session generates a handful of distinct viewports.
+- **Guards:** bounds area cap (reject boxes wider/taller than ~30° per side —
+  stops a world-zoom box returning hundreds of stations in one call); client
+  only queries on pan/zoom settle (~500 ms debounce) and at zoom ≥ 4;
+  `country` filter unnecessary here (bounds are inherently geographic), but
+  non-MY results flow only through this read-only view. Existing 30/min/IP
+  rate limiter applies.
+- **project-brief.md implications (recommendation, not yet applied):** the
+  Now list's "Live map of Malaysian station AQI pins…" line needs a caveat —
+  proposed wording: "…plus a worldwide explore mode on the map (bounds-based;
+  reading, alerts, and resolution remain Malaysia-only)". Non-Goals' "Coverage
+  outside Malaysia" gets the same "(map explore view excepted)" note, or the
+  two documents contradict each other.
 
 ## Testing Strategy
 

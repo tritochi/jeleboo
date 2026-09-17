@@ -35,15 +35,25 @@
 
 ## In progress
 
-- Nothing. The builder's QoL priority queue is fully shipped (2026-09-15):
-  Card 13 quiet hours, Card 14 city-change detection, and Card 15 the DOE
-  guidance line (shipped on the builder's option-1 sourcing decision — see
-  the card's Research log for the verification chain, including the
-  agent-side fetch blocks and the mandatory US-AQI/API scale caveat).
-  Remaining queue: `backlog.md` (small ×6, medium ×3, needs-architecture ×3,
-  blocked ×1, cross-cutting ×2, plus the post-v1 Supabase `[L]`); new items
-  go through `prompts/09-iterate.md` → architecture pass (if structural) →
-  Work Card.
+- **DOE APIMS closed (Task, 2026-09-15):** both paths recorded together —
+  direct integration (tested 3×: initial architecture research, Card 15's
+  verification pass, a same-day re-check; apims.doe.gov.my is a JS shell with
+  nothing extractable pre-browser) and the btm.doe.gov.my research channel —
+  closure notes in `project-brief.md`'s Later list and `architecture.md`'s
+  Constraints section. WAQI is the data source, decided.
+- **Worldwide map (Task, 2026-09-15) — proposal awaiting builder
+  confirmation.** The bounds question is answered with a live test
+  (production token): `/map/bounds` **works outside Malaysia** (NY 19, NW-EU
+  237, Delhi 24 stations) with coordinate order `lat1,lng1,lat2,lng2` — order
+  B silently returns 0, and the demo token errors (the original "broken"
+  finding was a demo-token artifact). Malaysia specifically returns 0 — a
+  bounds-index gap, so the fork resolves to **Shape 1**: live viewport
+  queries for a worldwide explore view, Malaysia keeping its search-based
+  cached path. Proposed as an addendum to `architecture.md`'s "Map &
+  Station Explorer" section (mechanics, 0.5°-grid/60-min cache, area cap,
+  merge with the MY set, button-label rename flag, and the recommended
+  `project-brief.md` caveats — not yet applied). No Work Card until the
+  builder confirms the addendum.
 
 ## Blockers
 

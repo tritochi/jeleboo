@@ -48,7 +48,7 @@ Open the installed PWA — or a plain browser tab, no install required to just l
 - IQAir as a second, comparable source and a "compare sources" view (93 stations from 26 contributors for Malaysia on IQAir, including the official Department of Environment — good depth, but the free API tier is city-level only and capped at 500 calls/day, so it's a comparison source, not the primary poll loop)
 - Saved locations / watchlist beyond just live GPS
 - History / trend chart
-- Direct DOE APIMS integration, if a genuinely live feed turns out to be reachable — see the note in `architecture.md`
+- Direct DOE APIMS integration — **closed, non-viable via automated access**: tested directly three separate times across this project (initial architecture research, Card 15's verification pass, and a re-check on 2026-09-15); every time, apims.doe.gov.my came back as a JavaScript app shell ("MyEQMS") with nothing extractable before a browser executes it. WAQI remains the data source — decided, not provisionally. (See the closure note in `architecture.md`'s Constraints section, next to the btm.doe.gov.my research-channel finding.)
 
 ### Never
 
