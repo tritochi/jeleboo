@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — worldwide explore + world overview authored (cards 16–19); build starts at 16
-- Current work card: `work-cards/16-worldwide-map-view.md` (authored, next to build)
+- Current phase: Iterate — worldwide explore + world overview (cards 16–19); Card 16 done, Card 17 next
+- Current work card: `work-cards/17-worldwide-explore-ui.md` (next to build)
 
 ## Completed work cards
 

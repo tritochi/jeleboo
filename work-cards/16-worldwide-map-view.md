@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Not started (current card)
+Done — verified locally and live on Railway (see `build-status.md`); UI lands in Card 17
 
 ## Why
 
@@ -76,10 +76,19 @@ variables. No color data.
 
 ## Done-when
 
-- [ ] Route live locally + on Railway; NY box and KL box return correct
-      merged pins (73+ MY stations preserved).
-- [ ] Validation 400s (bad numbers, order, >30° box); limiter active.
-- [ ] `bun test` green incl. new coverage; server `tsc` clean; CI green.
+- [x] Route live locally + on Railway; NY box (19 stations, zero MY
+      leakage) and KL box (68 stations incl. slug-fetched Perai) return
+      correct merged pins. Note recorded honestly: US Embassy + Muar are
+      absent when WAQI has no current reading for them (`aqi: "-"` on their
+      slug feeds, verified live) — they retry on the next refresh and appear
+      when data exists.
+- [x] Validation 400s (bad numbers, order, >30° box); limiter active.
+- [x] **Bonus bug the live check caught:** the MY union originally ran for
+      every viewport — a NY box pulled all 73 Malaysian stations into
+      itself. Fixed with a testable `viewportIntersectsMyBox` gate (NY/Delhi
+      false, MY boxes true, inclusive edges); 3 tests added.
+- [x] `bun test` 77/77 incl. new coverage; server `tsc` clean; CI green
+      (`5dc6bf3`).
 
 ## Learner checkpoint (per prompts/06)
 
