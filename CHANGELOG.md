@@ -122,3 +122,8 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   OSM/WAQI attribution. One design gap found and documented first in
   design.md: the "Back to reading" control. **Builder-verified** on the live
   hosts (navigation, search, pin/label pairing, offline, 320px).
+- **Card 18 — World overview backend layer:** `/api/world-overview` serves a
+  low-fidelity global dataset (chunked 30°×30° `/map/bounds` grid with recursive
+  sub-division on the 1,024 cap, one-per-city dedupe, 6-hour cache) rendered
+  only below zoom 4 as simplified stroke-less dots. Live on Railway with real
+  data from 900+ cities worldwide including Malaysia.

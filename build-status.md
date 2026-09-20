@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — worldwide explore + world overview (cards 16–19); Cards 16–17 done, Card 18 next
-- Current work card: `work-cards/18-world-overview-backend.md` (next to build)
+- Current phase: Iterate — worldwide explore complete (cards 16–18 done); Card 19 next (world overview display)
+- Current work card: `work-cards/19-world-overview-display.md` (next to build)
 
 ## Completed work cards
 
@@ -31,55 +31,22 @@
 - [x] 12 Map Screen — Station Explorer (post-ship) — lazy `React.lazy` Leaflet screen (Leaflet/OSM code verified absent from the main bundle; `MapScreen-*.js/.css` separate precached chunks), quiet "Map of Malaysian stations" secondary control, "Back to reading" control (design gap documented in design.md first), debounced 300 ms search with 44px+ rows and viewing-only selection, six-band circle pins (~22px visual / 44px hit target, colors from the existing `--sev-<band>-fill/-text` variables), station card in the reading card's fixed order, all four design.md states, always-visible OSM/WAQI attribution. App `tsc` clean; CI green (`ad488ef`); live on Vercel; builder passed the manual device check incl. 320px.
 - [x] 13 Quiet Hours (post-ship) — per-device `quiet_start_utc`/`quiet_end_utc` (UTC minutes, NULL = disabled) with pure tested window logic (midnight wrap, start inclusive / end exclusive) and the **hazardous 300+ bypass**; the poll skips both the push and the `notification_log` row inside the window (hysteresis untouched — a crossing still active when quiet hours end is delivered by the next poll); `PUT /api/devices/:id/quiet-hours` (validated) + UI control in the threshold section (design.md bullet added first). `bun test` 62/62; live-verified on Railway (13 devices checked, 1 suppressed, 0 sent, 0 errors); builder-verified.
 - [x] 14 City-Change Detection (post-ship) — a quiet "Location updated — now showing \<station\>" line under the reading card when a fresh GPS fix resolves to a different station than the last cached one (first-ever load and same-station loads show nothing). Significant-move threshold defined in the card as **station identity, not raw GPS distance** (station flips are the resolution unit). `devices.last_station_name` column + optional validated `station_name` on `POST /api/devices` (returned by `GET /api/devices/:id`). App `bun test` 10/10 (new `stationChanged` cases), server 62/62, both `tsc` clean, CI green (`07a23db`), live on Railway + Vercel; builder-verified.
-- [ ] 15 DOE Guidance Line (post-ship) — **shipped on the builder's option-1 sourcing decision** after the verification blocker: a static muted line under the reading card citing the **National Haze Action Plan** — "outdoor activities are suspended above API 100, and schools close above API 200" — with the mandatory scale caveat (Malaysian API scale vs the US AQI reading shown). API 150/NADMA stays a sourcing note, not UI copy. Agent-side fetches of the PTJK PDF and RTM were bot-blocked; the verification chain (RTM quoting DOE Deputy DG Azuri Azizah Saedon + corroborating outlets) is builder-attested and logged in full in the card. App `bun test` 10/10, both `tsc` clean, CI green (`9211df3`), live on Vercel (`index-CWOfV1tq.js` contains line + caveat + thresholds); builder visual check pending.
+- [x] 15 DOE Guidance Line (post-ship) — **shipped** on the builder's option-1 sourcing decision: a static muted line under the reading card citing the **National Haze Action Plan** — "outdoor activities are suspended above API 100, and schools close above API 200" — with the mandatory scale caveat (Malaysian API vs US AQI). App `bun test` 10/10, both `tsc` clean, CI green (`9211df3`), live on Vercel; builder visual check passed.
+- [x] 16 Worldwide Explore Backend (post-ship) — `GET /api/map-view` (order-A normalized, 0.5°-grid cache, 60-min TTL, 30°/side cap, pan/zoom-settle debounce, zoom ≥ 4, 30/min/IP limiter) returns bounds-derived markers **worldwide including Malaysia** via the rebuilt-bounds approach; `/api/stations` retired as the map's marker source (stays for `/api/search` + reading pipeline); shared rate limiter + server-side six-band classifier. `bun test` 81/0 pass, server `tsc` clean, CI green; live on Railway.
+- [x] 17 Worldwide Explore UI (post-ship) — lazy `React.lazy` Leaflet screen (map code isolated from main bundle), "Explore stations" secondary control, debounced 300 ms MY-only search with 44px+ rows, viewing-only selection, six-band circle pins (colors from existing severity CSS vars), OSM/WAQI attribution always visible. App `tsc` clean, CI green; live on Vercel; builder-verified.
+- [x] 18 World Overview Backend (post-ship) — `GET /api/world-overview`: chunked 30°×30° `/map/bounds` grid with recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour `WORLD_OVERVIEW_HOURS` cache (lazy refresh + scheduled), served only below zoom 4. `bun test` 84/0 pass, server `tsc` clean, CI green; live on Railway (HTTP 200, ~900 stations post-dedupe, `totalRaw: 1032`, `stale: false`, Malaysia included).
 
 ## In progress
 
-- **DOE APIMS closed (Task, 2026-09-15):** both paths recorded together —
-  direct integration (tested 3×: initial architecture research, Card 15's
-  verification pass, a same-day re-check; apims.doe.gov.my is a JS shell with
-  nothing extractable pre-browser) and the btm.doe.gov.my research channel —
-  closure notes in `project-brief.md`'s Later list and `architecture.md`'s
-  Constraints section. WAQI is the data source, decided.
-- *Recheck trail (2026-09-17): the original worldwide-map addendum assumed
-  Malaysia returns 0 from bounds; a rebuilt-boxes recheck proved otherwise
-  (Peninsular 57 / Borneo 20 / tight KL 7, order A, production token),
-  stopping the proposal before any cards were written — superseded by the two
-  confirmed entries below.*
-- **Explore mode REWRITTEN + CONFIRMED (2026-09-17):** the addendum now reads
-  bounds-derived markers **worldwide including Malaysia** — no special case.
-  The two builder-requested checks passed and are recorded in the section:
-  (1) Brunei containment — bounds items carry no `country`/`url` fields, so
-  the MY filter is a **name-suffix** rule (", Malaysia"; 63/77 in the two MY
-  boxes; Batam and any Brunei entry fail it by construction); (2) Card-02
-  coverage — bounds returns **65/73** table uids, so the MY portion is a
-  **union** with the Card-02 table (all 73 preserved + new finds, uid dedupe,
-  table coordinates as stable overlay). Mechanics: `GET /api/map-view`
-  (order-A normalized, 0.5°-grid cache, 60-min TTL, 30°/side cap,
-  pan/zoom-settle debounce, zoom ≥ 4, 30/min/IP limiter); **`/api/stations`
-  retired as the map's marker source** (stays deployed for `/api/search` and
-  reading pipeline). Button renames to "Explore stations". Brief caveats
-  applied (Now map line + Non-Goals exception); design.md bullets added for
-  both features. **Work Cards 16–17 (explore mode: backend, then UI) are the
-  confirmed next build.**
-- **World overview layer CONFIRMED (2026-09-17):** one-per-city over chunked
-  `/map/bounds` (30°×30° cells, sub-divide on the 1,024 cap; EU 1,024,
-  India/SEA 50, US 370), estimated ~1,000–1,500 entries (exact count at
-  first refresh), **6-hour** refresh (`WORLD_OVERVIEW_HOURS`),
-  `GET /api/world-overview`, rendered **only below zoom 4** with simplified
-  markers. Builds on the explore mode; **Work Cards 18–19 follow 16–17.**
-- **World overview layer (Task, 2026-09-17) — proposal awaiting builder
-  confirmation** (`architecture.md`, "World overview layer for zoomed-out
-  views"): fixes the below-zoom-4 emptiness without touching the confirmed
-  zoom ≥ 4 behavior. Dataset ladder walked and stated — city-level is NOT
-  separately queryable (docs quote logged), stats pages not machine-usable,
-  so the path landed on **one-per-major-city over chunked `/map/bounds`
-  data** (30°×30° cells, sub-divide on the 1,024 per-request cap — EU chunk
-  returned exactly 1,024; India/SEA 50; US 370), estimated **~1,000–1,500
-  entries** after dedupe (exact count measured at first refresh), refresh
-  **every 6 hours** (`WORLD_OVERVIEW_HOURS`), rendered **only below zoom 4**
-  with smaller/simplified markers. Not a Work Card until confirmed — and
-  sequencing note: the explore-mode rewrite (above) should land first.
+- **Explore mode (Cards 16–17):** bounds-derived markers worldwide including
+  Malaysia. `GET /api/map-view` serves the zoomed-in (≥4) live viewport with
+  MY filter (name-suffix rule), Card-02 coordinate union, 0.5°-grid cache,
+  60-min TTL; `GET /api/stations` retains `/api/search` + reading pipeline.
+  Both routes live on Railway, CI green, builder-verified on Vercel.
+- **World overview layer (Card 18):** chunked 30°×30° `/map/bounds` grid with
+  recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour
+  `WORLD_OVERVIEW_HOURS` cache, served only below zoom 4. Live on Railway
+  (~900 stations post-dedupe, `totalRaw: 1032`). **Card 19 (display) next.**
 
 ## Blockers
 
