@@ -1,19 +1,25 @@
-// Jeleboo — Map Screen (Station Explorer), Card 12.
-// Second screen per design.md: live Malaysian AQI pins + viewing-only search.
+// Jeleboo — Map Screen (Station Explorer), Cards 12 + 17.
+// Second screen per design.md: worldwide AQI pins via live viewport queries
+// (zoom >= 4, confirmed "Worldwide explore mode") + viewing-only search.
 // Lazy-loaded from App.tsx — the home screen's first paint never pays for
 // Leaflet. Colors come strictly from the existing six-band CSS variables
 // (band fill + dark text stroke) — no new colors anywhere in this file.
 
-import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, useMap } from "react-leaflet";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-    useStations,
     usePlaceSearch,
     minutesAgo,
     type StationMarker,
     type SearchResult,
 } from "../hooks/useStations";
+import {
+    useMapView,
+    queryZoomGate,
+    viewportFromCorners,
+    type MapViewViewport,
+} from "../hooks/useMapView";
 import { classifyAqi } from "../theme/severity";
 
 const MALAYSIA_BOUNDS: [[number, number], [number, number]] = [
@@ -42,6 +48,37 @@ function FitMalaysia() {
     useEffect(() => {
         map.fitBounds(MALAYSIA_BOUNDS, { padding: [8, 8] });
     }, [map]);
+    return null;
+}
+
+/** Reports every pan/zoom settle; the parent debounces + gates on zoom. */
+function ViewportQuery({ onSettle }: { onSettle: (v: MapViewViewport, zoom: number) => void }) {
+    const map = useMapEvents({
+        moveend: () => settle(),
+        zoomend: () => settle(),
+    });
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    function settle() {
+        const b = map.getBounds();
+        const v = viewportFromCorners(
+            b.getSouthWest().lat,
+            b.getSouthWest().lng,
+            b.getNorthEast().lat,
+            b.getNorthEast().lng
+        );
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => onSettle(v, map.getZoom()), 500); // architecture.md: settle debounce
+    }
+
+    useEffect(() => {
+        settle(); // first query right after the initial fitBounds
+        return () => {
+            if (timer.current) clearTimeout(timer.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [map]);
+
     return null;
 }
 
@@ -84,8 +121,8 @@ interface Selected {
 }
 
 export default function MapScreen({ onBack }: { onBack: () => void }) {
-    const [attempt, setAttempt] = useState(0);
-    const { status, set, error } = useStations(attempt);
+    const { state, queryViewport, retry } = useMapView();
+    const { status, set, error } = state;
     const [query, setQuery] = useState("");
     const { results } = usePlaceSearch(query);
     const [selected, setSelected] = useState<Selected | null>(null);
@@ -116,6 +153,14 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
     }
 
     const listEmpty = status === "ready" && set !== null && set.stations.length === 0;
+
+    /** Card 17: pan/zoom settle → gated viewport query (zoom >= 4 only). */
+    function handleSettle(v: MapViewViewport, zoom: number) {
+        if (queryZoomGate(zoom)) {
+            void queryViewport(v);
+        }
+        // Below zoom 4: no query fires (Cards 18–19 add the overview layer).
+    }
 
     const pins = useMemo(() => {
         if (!set) return [];
@@ -184,11 +229,12 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                         maxZoom={19}
                     />
                     <FitMalaysia />
+                    <ViewportQuery onSettle={handleSettle} />
                     {flyTarget ? <FlyToSelection lat={flyTarget.lat} lng={flyTarget.lng} /> : null}
-                    {status === "loading" ? <SkeletonPins /> : pins}
+                    {status === "idle" || status === "loading" ? <SkeletonPins /> : pins}
                 </MapContainer>
 
-                {status === "loading" ? (
+                {status === "idle" || status === "loading" ? (
                     <div className="map-overlay" role="status">
                         <p>Loading stations…</p>
                     </div>
@@ -201,7 +247,7 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                             <button
                                 type="button"
                                 className="map-retry"
-                                onClick={() => setAttempt((k) => k + 1)}
+                                onClick={() => retry()}
                             >
                                 Retry
                             </button>

@@ -207,14 +207,14 @@ function App() {
                     />
                 </details>
 
-                {/* Map & Station Explorer: quiet secondary control, same calm
-                    bordered style as the threshold summary (design.md). */}
+                {/* Worldwide explore mode (Card 17): quiet secondary control,
+                    same calm bordered style as the threshold summary. */}
                 <button
                     type="button"
                     className="map-open"
                     onClick={() => setView("map")}
                 >
-                    Map of Malaysian stations
+                    Explore stations
                 </button>
                 </>
                 )}
