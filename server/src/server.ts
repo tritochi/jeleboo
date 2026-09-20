@@ -11,7 +11,9 @@ import pollRoutes from "./routes/poll";
 import stationsRoutes from "./routes/stations";
 import quietHoursRoutes from "./routes/quiet-hours";
 import mapViewRoutes from "./routes/map-view";
+import worldOverviewRoutes from "./routes/world-overview";
 import { startPollScheduler } from "./jobs/poll";
+import { startWorldOverviewScheduler } from "./sources/world-overview";
 
 // Load server/.env.local if present — Bun does not auto-load .env files.
 function loadEnvLocal() {
@@ -90,6 +92,7 @@ app.use("/api", pollRoutes);
 app.use("/api", stationsRoutes);
 app.use("/api", quietHoursRoutes);
 app.use("/api", mapViewRoutes);
+app.use("/api", worldOverviewRoutes);
 
 export function startServer(port?: number) {
     const p = port ?? Number(process.env.PORT) ?? 3000;
@@ -99,6 +102,13 @@ export function startServer(port?: number) {
     const interval = Number(process.env.POLL_INTERVAL_MINUTES);
     if (Number.isFinite(interval) && interval >= 1) {
         startPollScheduler(Math.round(interval));
+    }
+    // World overview warm-up (Card 18): only when the host opts in
+    // (WORLD_OVERVIEW_HOURS, e.g. 6 on Railway). Local dev relies on the
+    // lazy first-fetch instead.
+    const worldHours = Number(process.env.WORLD_OVERVIEW_HOURS);
+    if (Number.isFinite(worldHours) && worldHours >= 1) {
+        startWorldOverviewScheduler(Math.round(worldHours));
     }
     return app.listen(p, () => {
         // eslint-disable-next-line no-console
