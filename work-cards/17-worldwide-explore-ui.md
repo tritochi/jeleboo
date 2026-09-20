@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Not started (blocked by Card 16)
+Done — verified locally and live on Vercel/Railway (see `build-status.md`); builder device check pending
 
 ## Why
 
@@ -60,11 +60,17 @@ single-out rule). No new colors; no Malaysia-specific visual treatment.
 
 ## Done-when
 
-- [ ] Map shows worldwide pins on pan/zoom at zoom ≥ 4, Malaysia included;
-      "Explore stations" label shipped.
-- [ ] No query fires below zoom 4.
-- [ ] `bun test` green; app `tsc` clean; build clean; CI green.
-- [ ] Live on Vercel against live Railway; builder device check.
+- [x] Map shows worldwide pins on pan/zoom at zoom ≥ 4, Malaysia included
+      (KL box verified live through the Vite proxy and on the live stack);
+      "Explore stations" label shipped (verified in the live main bundle).
+- [x] No query fires below zoom 4 — `queryZoomGate` unit-tested (4+ true,
+      below/null/NaN false); the settle debounce lives in `ViewportQuery`.
+- [x] `bun test` 14/14 (2 new suites); app `tsc` clean; build clean; CI
+      green (`5b1cd18`); `/api/stations` no longer referenced by the map
+      bundle (verified) — retired as the map's marker source per the
+      confirmed architecture.
+- [x] Live on Vercel against live Railway; builder device check pending to
+      fully close.
 
 ## Learner checkpoint (per prompts/06)
 
