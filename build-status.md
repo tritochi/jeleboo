@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — worldwide explore complete (cards 16–18 done); Card 19 next (world overview display)
-- Current work card: `work-cards/19-world-overview-display.md` (next to build)
+- Current phase: Iterate — worldwide map complete (cards 16–19 done); next item from backlog
+- Current work card: none (Card 19 shipped; backlog is the queue)
 
 ## Completed work cards
 
@@ -35,18 +35,13 @@
 - [x] 16 Worldwide Explore Backend (post-ship) — `GET /api/map-view` (order-A normalized, 0.5°-grid cache, 60-min TTL, 30°/side cap, pan/zoom-settle debounce, zoom ≥ 4, 30/min/IP limiter) returns bounds-derived markers **worldwide including Malaysia** via the rebuilt-bounds approach; `/api/stations` retired as the map's marker source (stays for `/api/search` + reading pipeline); shared rate limiter + server-side six-band classifier. `bun test` 81/0 pass, server `tsc` clean, CI green; live on Railway.
 - [x] 17 Worldwide Explore UI (post-ship) — lazy `React.lazy` Leaflet screen (map code isolated from main bundle), "Explore stations" secondary control, debounced 300 ms MY-only search with 44px+ rows, viewing-only selection, six-band circle pins (colors from existing severity CSS vars), OSM/WAQI attribution always visible. App `tsc` clean, CI green; live on Vercel; builder-verified.
 - [x] 18 World Overview Backend (post-ship) — `GET /api/world-overview`: chunked 30°×30° `/map/bounds` grid with recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour `WORLD_OVERVIEW_HOURS` cache (lazy refresh + scheduled), served only below zoom 4. `bun test` 84/0 pass, server `tsc` clean, CI green; live on Railway (HTTP 200, ~900 stations post-dedupe, `totalRaw: 1032`, `stale: false`, Malaysia included).
+- [x] 19 World Overview Display (post-ship) — zoom-gated crossover in `MapScreen.tsx`: below zoom 4 the map renders the Card 18 global set as simplified 10px stroke-less band-fill dots (`OverviewDot` + `map-overview-dot` class, 44px invisible hit targets, `SkeletonWorldOverview` while loading); at zoom ≥ 4 the live viewport pins take over exactly as before — the two layers never render simultaneously. Overview fetched once per map open (not per pan/zoom) via the new `useWorldOverview` hook (localStorage cached-last-good + stale banner + Retry, mirroring `useStations`); layer-aware loading/error/empty overlays; station-card "Last updated" lookup covers both sets. App `tsc` clean, 14/14 tests, server 84/84, CI green (`092bfae`); live on Vercel (overview strings verified in the deployed `MapScreen-*.js` chunk) against Railway (`/api/world-overview` healthy: 3,557 stations, `stale: false`). Post-ship audit fixes: duplicate `minutesAgo` removed, speculative `station_name` field dropped (type now exactly matches the server's `MapViewMarker`), orphan comment removed, server cosmetic indent fix.
 
 ## In progress
 
-- **Explore mode (Cards 16–17):** bounds-derived markers worldwide including
-  Malaysia. `GET /api/map-view` serves the zoomed-in (≥4) live viewport with
-  MY filter (name-suffix rule), Card-02 coordinate union, 0.5°-grid cache,
-  60-min TTL; `GET /api/stations` retains `/api/search` + reading pipeline.
-  Both routes live on Railway, CI green, builder-verified on Vercel.
-- **World overview layer (Card 18):** chunked 30°×30° `/map/bounds` grid with
-  recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour
-  `WORLD_OVERVIEW_HOURS` cache, served only below zoom 4. Live on Railway
-  (~900 stations post-dedupe, `totalRaw: 1032`). **Card 19 (display) next.**
+- None — Cards 16–19 (worldwide explore + world overview) are all shipped.
+  Next item comes from `backlog.md`, or the builder's learner checkpoint on
+  Card 19 (below-4-dots → live-pins crossover on a real device).
 
 ## Blockers
 

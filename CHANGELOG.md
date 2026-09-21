@@ -127,3 +127,9 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   sub-division on the 1,024 cap, one-per-city dedupe, 6-hour cache) rendered
   only below zoom 4 as simplified stroke-less dots. Live on Railway with real
   data from 900+ cities worldwide including Malaysia.
+- **Card 19 — World overview on the map:** zoomed all the way out, the map
+  now shows the world — 3,500+ one-per-city dots colored by the same six-band
+  scale, tappable for a reading card. Zoom in past level 4 and the dots give
+  way to the live viewport pins exactly as before; the two never mix. The
+  overview refreshes on the backend every 6 hours and is cached on the
+  device, so zoomed-out browsing stays cheap.

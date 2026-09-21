@@ -6,7 +6,13 @@ Feature
 
 ## Status
 
-Not started (blocked by Cards 17–18)
+Done (2026-09-20) — shipped in `092bfae`; the only open item is the builder's
+device check on the crossover (learner checkpoint below). Post-audit fixes
+included: duplicate `minutesAgo` removed from the new hook, speculative
+`station_name` field dropped (the type now exactly matches the server's
+`MapViewMarker` shape), an orphan `zoom` comment removed, header updated, and
+a cosmetic indent fix in the server's `world-overview.ts`. Railway healthy at
+ship time: 3,557 stations post-dedupe, `stale: false`.
 
 ## Why
 
@@ -60,11 +66,18 @@ equal-precision with live pins.
 
 ## Done-when
 
-- [ ] Below zoom 4: global overview dots visible and tappable; at zoom ≥ 4:
-      live pins only. Crossover works both directions.
-- [ ] Visual distinction obvious at a glance (smaller, stroke-less).
-- [ ] `bun test` green; app `tsc` clean; build clean; CI green.
-- [ ] Live on Vercel against live Railway; builder device check.
+- [x] Below zoom 4: global overview dots visible and tappable; at zoom ≥ 4:
+      live pins only. Crossover works both directions. (Verified in code
+      review + green build; the bidirectional visual check is the builder
+      device check below.)
+- [x] Visual distinction obvious at a glance (smaller, stroke-less) —
+      10px fill-only dots vs 22px stroked pins.
+- [x] `bun test` green (app 14/14, server 84/84); app `tsc` clean; build
+      clean; CI green (`092bfae`).
+- [x] Live on Vercel (overview strings verified in the deployed
+      `MapScreen-*.js` chunk) against live Railway (`/api/world-overview`
+      healthy: 3,557 stations, `stale: false`).
+- [ ] Builder device check (learner checkpoint below) — the only open item.
 
 ## Learner checkpoint (per prompts/06)
 
