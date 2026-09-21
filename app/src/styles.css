@@ -620,6 +620,15 @@ body {
     font-size: 14px;
 }
 
+/* Card 19: world overview dots — deliberately simplified vs the live pins:
+   smaller (10px), no stroke, slightly translucent. The simplified look is
+   the point — never equal-precision with the zoomed-in live pins (design.md
+   Map Screen overview bullet). Colors still come only from the six-band
+   fill variables; no new colors. */
+.leaflet-interactive.map-overview-dot {
+    stroke: none;
+}
+
 .map-error-card {
     display: flex;
     flex-direction: column;

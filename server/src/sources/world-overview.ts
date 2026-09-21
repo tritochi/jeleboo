@@ -191,7 +191,7 @@ export async function getWorldOverview(token: string): Promise<WorldOverviewResu
         }
         return { ...cache, stale: true };
     }
-        const fresh = await refresh(token);
+    const fresh = await refresh(token);
     cache = fresh;
     return { ...fresh, stale: false };
 }

@@ -1,6 +1,7 @@
-// Jeleboo — Map Screen (Station Explorer), Cards 12 + 17.
+// Jeleboo — Map Screen (Station Explorer), Cards 12 + 17 + 19.
 // Second screen per design.md: worldwide AQI pins via live viewport queries
-// (zoom >= 4, confirmed "Worldwide explore mode") + viewing-only search.
+// (zoom >= 4, confirmed "Worldwide explore mode"), a low-fidelity world
+// overview dot layer below zoom 4 (Card 19), and viewing-only search.
 // Lazy-loaded from App.tsx — the home screen's first paint never pays for
 // Leaflet. Colors come strictly from the existing six-band CSS variables
 // (band fill + dark text stroke) — no new colors anywhere in this file.
@@ -20,7 +21,13 @@ import {
     viewportFromCorners,
     type MapViewViewport,
 } from "../hooks/useMapView";
+import { useWorldOverview, type OverviewMarker } from "../hooks/useWorldOverview";
 import { classifyAqi } from "../theme/severity";
+
+/** Zoom gate for the overview layer: shown below zoom 4, hidden at/above 4. */
+export function overviewZoomGate(zoom: number | null | undefined): boolean {
+    return typeof zoom === "number" && Number.isFinite(zoom) && zoom < 4;
+}
 
 const MALAYSIA_BOUNDS: [[number, number], [number, number]] = [
     [0.8, 99.5], // SW corner (covers Langkawi/Malacca Strait edge)
@@ -91,6 +98,61 @@ function FlyToSelection({ lat, lng }: { lat: number; lng: number }) {
     return null;
 }
 
+/** Grey placeholder dots while the world overview loads (design.md state). */
+function SkeletonWorldOverview() {
+    // A sparse, deterministic sprinkle across continents for a loading cue.
+    const spots: Array<[number, number]> = [
+        [39.0, -95.7], // USA center
+        [51.1, 10.6], // Central Europe
+        [20.6, 78.9], // India center
+        [-33.9, 18.4], // South Africa
+        [35.7, 139.8], // Japan
+        [14.6, -90.5], // Guatemala (bridges North+South America dots)
+        [1.3, 103.8], // Singapore area (Asia connectivity)
+    ];
+    return (
+        <>
+            {spots.map(([lat, lng], i) => (
+                <CircleMarker
+                    key={`wo-sk-${i}`}
+                    center={[lat, lng]}
+                    radius={5}
+                    interactive={false}
+                    pathOptions={{ color: "transparent", fillColor: "#D8D5CE", fillOpacity: 0.5, weight: 0 }}
+                />
+            ))}
+        </>
+    );
+}
+
+/** ~10px band-fill dots, no stroke — visually "less precise" than live pins (design.md map screen). */
+function OverviewDot({ marker, onSelect }: { marker: OverviewMarker; onSelect: (m: OverviewMarker) => void }) {
+    const fill = cssColor(`--sev-${marker.band}-fill`, "#ECEAE4");
+    const handlers = useMemo(() => ({ click: () => onSelect(marker) }), [marker, onSelect]);
+    return (
+        <>
+            <CircleMarker
+                center={[marker.lat, marker.lng]}
+                radius={5}
+                pathOptions={{
+                    className: "map-overview-dot",
+                    color: "transparent",
+                    fillColor: fill,
+                    fillOpacity: 0.85,
+                    weight: 0,
+                }}
+            />
+            {/* Invisible 44px hit target so the dot is thumb-safe (design.md). */}
+            <CircleMarker
+                center={[marker.lat, marker.lng]}
+                radius={22}
+                pathOptions={{ opacity: 0, fillOpacity: 0 }}
+                eventHandlers={handlers}
+            />
+        </>
+    );
+}
+
 /** Grey placeholder circles while the station set loads (design.md state). */
 function SkeletonPins() {
     const spots: Array<[number, number]> = [
@@ -128,6 +190,15 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
     const [selected, setSelected] = useState<Selected | null>(null);
     const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
     const [offline, setOffline] = useState(!navigator.onLine);
+    // Card 19 crossover: overview dots below zoom 4, live viewport pins at
+    // zoom >= 4. Starts false — the map opens fitted to Malaysia (zoom ~5),
+    // so the first layer is the live one.
+    const [showOverview, setShowOverview] = useState(false);
+    // Bumps useWorldOverview's trigger from the overview Retry button.
+    const [overviewRetry, setOverviewRetry] = useState(0);
+    // Card 19: world overview layer for zoom < 4 (fetched once per trigger;
+    // cached-last-good + stale handling live inside the hook).
+    const overview = useWorldOverview(overviewRetry);
 
     useEffect(() => {
         const off = () => setOffline(true);
@@ -152,11 +223,22 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
         setSelected({ name: m.name, lat: m.lat, lng: m.lng, aqi: m.aqi, uid: m.uid });
     }
 
+    function selectOverview(m: OverviewMarker) {
+        setSelected({
+            name: m.name,
+            lat: m.lat,
+            lng: m.lng,
+            aqi: m.aqi,
+            uid: m.uid,
+        });
+    }
+
     const listEmpty = status === "ready" && set !== null && set.stations.length === 0;
 
-    /** Card 17: pan/zoom settle → gated viewport query (zoom >= 4 only). */
-    function handleSettle(v: MapViewViewport, zoom: number) {
-        if (queryZoomGate(zoom)) {
+    /** Card 19: recompute layer visibility on every pan/zoom settle. */
+    function handleSettle(v: MapViewViewport, z: number) {
+        setShowOverview(overviewZoomGate(z));
+        if (queryZoomGate(z)) {
             void queryViewport(v);
         }
         // Below zoom 4: no query fires (Cards 18–19 add the overview layer).
@@ -168,6 +250,14 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
             <StationPin key={m.uid} marker={m} onSelect={selectStation} />
         ));
     }, [set]);
+
+    /** Card 19: overview dots from the global layer, shown below zoom 4. */
+    const overviewPins = useMemo(() => {
+        if (!overview.set) return [];
+        return overview.set.stations.map((m) => (
+            <OverviewDot key={m.uid} marker={m} onSelect={selectOverview} />
+        ));
+    }, [overview.set]);
 
     return (
         <section className="map-screen" aria-label="Station map">
@@ -216,6 +306,13 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                 </p>
             ) : null}
 
+            {showOverview && overview.set?.stale ? (
+                <p className="map-stale" role="status">
+                    Stale — world overview last updated{" "}
+                    {minutesAgo(overview.set.fetchedAt)} min ago
+                </p>
+            ) : null}
+
             <div className="map-area">
                 <MapContainer
                     center={[3.9, 108]}
@@ -231,23 +328,40 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                     <FitMalaysia />
                     <ViewportQuery onSettle={handleSettle} />
                     {flyTarget ? <FlyToSelection lat={flyTarget.lat} lng={flyTarget.lng} /> : null}
-                    {status === "idle" || status === "loading" ? <SkeletonPins /> : pins}
+                    {/* Card 19 crossover: overview dots below zoom 4, live
+                        viewport pins at zoom >= 4. Never both at once. */}
+                    {showOverview
+                        ? overview.status === "loading"
+                            ? <SkeletonWorldOverview />
+                            : overviewPins
+                        : status === "idle" || status === "loading"
+                            ? <SkeletonPins />
+                            : pins}
                 </MapContainer>
 
-                {status === "idle" || status === "loading" ? (
+                {(showOverview
+                    ? overview.status === "loading"
+                    : status === "idle" || status === "loading") ? (
                     <div className="map-overlay" role="status">
                         <p>Loading stations…</p>
                     </div>
                 ) : null}
 
-                {status === "error" ? (
+                {(showOverview ? overview.status === "error" : status === "error") ? (
                     <div className="map-overlay" role="alert">
                         <div className="map-error-card">
-                            <p>{error ?? "Can't load the station map."}</p>
+                            <p>
+                                {(showOverview ? overview.error : error) ??
+                                    "Can't load the station map."}
+                            </p>
                             <button
                                 type="button"
                                 className="map-retry"
-                                onClick={() => retry()}
+                                onClick={() =>
+                                    showOverview
+                                        ? setOverviewRetry((n) => n + 1)
+                                        : retry()
+                                }
                             >
                                 Retry
                             </button>
@@ -255,7 +369,11 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                     </div>
                 ) : null}
 
-                {listEmpty ? (
+                {(showOverview
+                    ? overview.status === "ready" &&
+                      overview.set !== null &&
+                      overview.set.stations.length === 0
+                    : listEmpty) ? (
                     <div className="map-overlay" role="status">
                         <p className="map-empty">No stations found here</p>
                     </div>
@@ -284,9 +402,12 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                         <p className="map-card-label">No current reading</p>
                     )}
                     <p className="map-card-meta">Source: WAQI</p>
-                    {selected.uid !== null && set ? (
+                    {selected.uid !== null && (set || overview.set) ? (
                         (() => {
-                            const m = set.stations.find((s) => s.uid === selected.uid);
+                            const uid = selected.uid;
+                            const m =
+                                set?.stations.find((s) => s.uid === uid) ??
+                                overview.set?.stations.find((s) => s.uid === uid);
                             return m ? (
                                 <p className="map-card-meta">
                                     Last updated {minutesAgo(m.lastUpdated)} min ago
