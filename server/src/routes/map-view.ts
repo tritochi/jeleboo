@@ -10,7 +10,12 @@ import { makeRateLimiter } from "../lib/rate-limit";
 
 const router = Router();
 
-const mapViewLimiter = makeRateLimiter(30, 60_000);
+// 60/min per client: the map settles a query on every pan/zoom stop (500ms
+// debounce ≈ 1–2 calls/sec while actively exploring), so 30 was tight enough
+// to trip during one sustained zooming session. The 0.5°-grid cache makes
+// repeat viewports free — only NEW cells reach WAQI — so this is still
+// far below anything that could stress the upstream.
+const mapViewLimiter = makeRateLimiter(60, 60_000);
 
 router.get("/map-view", async (req, res) => {
     const ip = req.ip ?? "unknown";

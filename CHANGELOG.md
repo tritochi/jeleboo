@@ -133,3 +133,9 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   way to the live viewport pins exactly as before; the two never mix. The
   overview refreshes on the backend every 6 hours and is cached on the
   device, so zoomed-out browsing stays cheap.
+- **Fixed — map erroring under normal use:** the station map could fail with
+  "Can't load the station map." because the backend counted every user
+  against one shared rate-limit bucket (a hosting-proxy quirk) and the
+  zoomed-in map's own query rhythm could empty it solo. Limits are now
+  genuinely per-user and the map's headroom doubled; normal exploring no
+  longer trips it.

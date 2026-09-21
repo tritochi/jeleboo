@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — worldwide map complete (cards 16–19 done); next item from backlog
-- Current work card: none (Card 19 shipped; backlog is the queue)
+- Current phase: Iterate — worldwide map complete (cards 16–19 done); Card 20 hotfix (rate-limit bug); next item from backlog
+- Current work card: `work-cards/20-trust-proxy-rate-limit.md` (bugfix)
 
 ## Completed work cards
 
@@ -36,6 +36,7 @@
 - [x] 17 Worldwide Explore UI (post-ship) — lazy `React.lazy` Leaflet screen (map code isolated from main bundle), "Explore stations" secondary control, debounced 300 ms MY-only search with 44px+ rows, viewing-only selection, six-band circle pins (colors from existing severity CSS vars), OSM/WAQI attribution always visible. App `tsc` clean, CI green; live on Vercel; builder-verified.
 - [x] 18 World Overview Backend (post-ship) — `GET /api/world-overview`: chunked 30°×30° `/map/bounds` grid with recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour `WORLD_OVERVIEW_HOURS` cache (lazy refresh + scheduled), served only below zoom 4. `bun test` 84/0 pass, server `tsc` clean, CI green; live on Railway (HTTP 200, ~900 stations post-dedupe, `totalRaw: 1032`, `stale: false`, Malaysia included).
 - [x] 19 World Overview Display (post-ship) — zoom-gated crossover in `MapScreen.tsx`: below zoom 4 the map renders the Card 18 global set as simplified 10px stroke-less band-fill dots (`OverviewDot` + `map-overview-dot` class, 44px invisible hit targets, `SkeletonWorldOverview` while loading); at zoom ≥ 4 the live viewport pins take over exactly as before — the two layers never render simultaneously. Overview fetched once per map open (not per pan/zoom) via the new `useWorldOverview` hook (localStorage cached-last-good + stale banner + Retry, mirroring `useStations`); layer-aware loading/error/empty overlays; station-card "Last updated" lookup covers both sets. App `tsc` clean, 14/14 tests, server 84/84, CI green (`092bfae`); live on Vercel (overview strings verified in the deployed `MapScreen-*.js` chunk) against Railway (`/api/world-overview` healthy: 3,557 stations, `stale: false`). Post-ship audit fixes: duplicate `minutesAgo` removed, speculative `station_name` field dropped (type now exactly matches the server's `MapViewMarker`), orphan comment removed, server cosmetic indent fix.
+- [x] 20 Trust Proxy + Rate-Limit Headroom (Bugfix, post-ship) — "Can't load the station map." on the live app traced to `trust proxy` never being set: behind Railway's edge, `req.ip` was the proxy address shared by ALL users, so every 30/min limiter was one global bucket and a single person panning the map (~1–2 settles/sec) could exhaust it alone → 429s → hard error card on first load. Fixed with `app.set("trust proxy", 1)` (req.ip = real client IP) + map-view raised to 60/min (sustained zooming ≈ 30–60 settles/min; repeat viewports are free via the 0.5°-grid cache). Server `tsc` clean, `bun test` 84/84; live burst probe all-200 after deploy.
 
 ## In progress
 

@@ -38,6 +38,13 @@ loadEnvLocal();
 
 export const app = express();
 
+// Railway terminates TLS at one edge proxy before the container, so without
+// this Express sees the proxy's address as req.ip — meaning every rate
+// limiter keyed on req.ip becomes ONE SHARED BUCKET for all users (a single
+// person panning the map can exhaust it alone). trust proxy = 1 hop makes
+// req.ip the real client address as recorded by the edge.
+app.set("trust proxy", 1);
+
 app.use(express.json());
 
 // ---- CORS (deployed split only) ----
