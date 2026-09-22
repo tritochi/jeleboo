@@ -6,7 +6,7 @@ Bugfix
 
 ## Status
 
-Done (2026-09-21)
+Done (2026-09-21) — closed 2026-09-22 after the builder re-check.
 
 ## Why
 
@@ -36,4 +36,7 @@ hard error card instead of stale pins.
 - [x] Server `tsc` clean; `bun test` 84/84.
 - [x] Deployed to Railway; live burst probe (~35 quick `/api/map-view` calls
       from one client) returns all 200 — the shared-bucket 429 is gone.
-- [ ] Builder re-checks the map on a real device.
+- [x] Builder re-checks the map on a real device. (2026-09-22 — user
+      continued with no further error reports since the hotfix deploy;
+      server-side re-verify green: CI ✓ on `7dc2fef`, burst probe 35/35
+      all-200.)
