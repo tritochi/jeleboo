@@ -9,13 +9,10 @@ Format per item: `- [size guess] Description (how it was noticed)`
 ### [small] — likely one Work Card each, no architecture pass
 
 - [small] App icon badge showing the AQI category via the Badging API (`navigator.setAppBadge(aqi)`, cleared when unreadable/offline) — frontend-only; badge platforms vary, so the card covers graceful no-op where unsupported (builder QoL brainstorm, post-ship)
-- [small] DOE guidance line under the reading — public thresholds: outdoor activities discouraged above API 100, disaster-response level above 150 sustained 24h+, schools move online above 200; **card must verify current DOE wording before shipping copy — never invented phrasing** (builder QoL brainstorm, post-ship)
 - [small] Web Share API "share this reading" button — frontend-only; platform-aware like `InstallPrompt`: hide where `navigator.share` is missing rather than showing a dead button (builder QoL brainstorm, post-ship)
 - [small] Settings-portability URL — encode the current threshold into a shareable link (`?threshold=NN` read on load, pre-filling the setter); **threshold only** — no saved locations yet, see Blocked (builder QoL brainstorm, post-ship)
 - [small] Public `/status` page — backend up, last poll X min ago, WAQI reachable. Checked: **no last-poll field exists anywhere** (`readings.recorded_at` is the upstream measurement time, not poll time), so the card adds a small poll-time field (kv/meta row or column) plus the route (builder QoL brainstorm + code check)
 - [small] Good-day microcopy variation (e.g. "clear enough to open the windows today") instead of a bare green Good number — copy-only, no new logic, must keep design.md's calm tone (builder QoL brainstorm, post-ship)
-
-- [medium] Worldwide station coverage — search is Malaysia-only (`?q=tokyo` → 0, the field literally says "Search a place in Malaysia") and `/api/map-view` rejects viewports >30°/side (zoom 4–6 desktop boxes 400 → error card) plus silently truncates at WAQI's 1,024-per-call bounds cap in dense regions (builder directive 2026-09-27: "check out every station worldwide… every station available on the WAQI API")
 
 ### [medium] — additive to schema/logic; short spec line before the card, no architecture pass
 
