@@ -6,7 +6,8 @@ Feature
 
 ## Status
 
-In progress (2026-09-27)
+Done (2026-09-27) — shipped `ed7b524`, CI green (run 36321038989),
+live-verified on Railway + Vercel. Builder device check pending (last box).
 
 ## Why
 
@@ -81,23 +82,33 @@ waqi api." Code review confirms three real limits behind that:
 
 ## Done-when
 
-- [ ] `?q=tokyo` / `?q=london` / `?q=paris` return worldwide suggestions
+- [x] `?q=tokyo` / `?q=london` / `?q=paris` return worldwide suggestions
       (live, local + Railway); `?q=kuch` still returns Kuching first;
-      coordinate-less rows and >20 results filtered server-side.
-- [ ] A wide viewport that previously 400'd (e.g. 120°×55° box) returns 200
-      with stations, locally + on Railway.
-- [ ] A dense 30°×30° box returns more than the 1,024 single-call cap
+      coordinate-less rows and >20 results filtered server-side. (Local:
+      tokyo n=20, london n=12 first=London; Railway: paris first=Paris,
+      kuch first=Kuching n=13; zero-coord + cap covered by unit tests.)
+- [x] A wide viewport that previously 400'd (e.g. 120°×55° box) returns 200
+      with stations, locally + on Railway. (1,465 stations both; pre-fix
+      this was a 400 error card.)
+- [x] A dense 30°×30° box returns more than the 1,024 single-call cap
       (proves sub-division) — count recorded in `build-status.md`.
-- [ ] Malaysia union intact: MY box still shows all 73 table stations
-      including table-only ones (e.g. Kota Tinggi).
-- [ ] `?q=x` → 400; reversed/non-finite viewport → 400; every cell failed →
-      502 (no silent empty success).
-- [ ] design.md placeholder/search bullets updated first; architecture.md
+      (EU box → 1,366 stations, local + Railway.)
+- [x] Malaysia union intact: MY box still shows all 73 table stations
+      including table-only ones (e.g. Kota Tinggi). (81 stations, Kota
+      Tinggi present both hosts.)
+- [x] `?q=x` → 400; reversed/non-finite viewport → 400; every cell failed →
+      502 (no silent empty success). (`?q=x` live 400; viewport validation
+      unit-tested; all-cells-failed throw is the unit-covered failure-count
+      path — same pattern as world-overview's tested all-fail throw.)
+- [x] design.md placeholder/search bullets updated first; architecture.md
       carries both dated notes; built bundle renders the new placeholder +
-      scrollable dropdown.
-- [ ] `bun test` green both halves (new coverage: planViewportCells wrap +
+      scrollable dropdown. (Docs committed ahead of code in-session; local
+      dist + served Vercel `MapScreen-vzHqpIV9.js` contain the new string,
+      zero hits for the old one.)
+- [x] `bun test` green both halves (new coverage: planViewportCells wrap +
       clamping, cap sub-division via map-view, worldwide suggestions); `tsc
       --noEmit` clean both; app build green; CI green; live probes recorded
-      in `build-status.md`.
+      in `build-status.md`. (Server 97/97 — 13 new, app 14/14, CI run
+      36321038989 success.)
 - [ ] Builder device check: worldwide search, zoom-out at ≥ 4 with no error
       card, dense-area pins complete.

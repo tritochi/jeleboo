@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — Card 21 (worldwide station coverage) in progress
-- Current work card: `work-cards/21-worldwide-station-coverage.md` (in progress, opened 2026-09-27)
+- Current phase: Iterate — Card 21 shipped (`ed7b524`) + live-verified; builder device check pending
+- Current work card: `work-cards/21-worldwide-station-coverage.md` (shipped 2026-09-27; awaiting builder device check)
 
 ## Completed work cards
 
@@ -37,15 +37,15 @@
 - [x] 18 World Overview Backend (post-ship) — `GET /api/world-overview`: chunked 30°×30° `/map/bounds` grid with recursive sub-division on the 1,024 cap, one-per-city dedupe, 6-hour `WORLD_OVERVIEW_HOURS` cache (lazy refresh + scheduled), served only below zoom 4. `bun test` 84/0 pass, server `tsc` clean, CI green; live on Railway (HTTP 200, ~900 stations post-dedupe, `totalRaw: 1032`, `stale: false`, Malaysia included).
 - [x] 19 World Overview Display (post-ship) — zoom-gated crossover in `MapScreen.tsx`: below zoom 4 the map renders the Card 18 global set as simplified 10px stroke-less band-fill dots (`OverviewDot` + `map-overview-dot` class, 44px invisible hit targets, `SkeletonWorldOverview` while loading); at zoom ≥ 4 the live viewport pins take over exactly as before — the two layers never render simultaneously. Overview fetched once per map open (not per pan/zoom) via the new `useWorldOverview` hook (localStorage cached-last-good + stale banner + Retry, mirroring `useStations`); layer-aware loading/error/empty overlays; station-card "Last updated" lookup covers both sets. App `tsc` clean, 14/14 tests, server 84/84, CI green (`092bfae`); live on Vercel (overview strings verified in the deployed `MapScreen-*.js` chunk) against Railway (`/api/world-overview` healthy: 3,557 stations, `stale: false`). Post-ship audit fixes: duplicate `minutesAgo` removed, speculative `station_name` field dropped (type now exactly matches the server's `MapViewMarker`), orphan comment removed, server cosmetic indent fix. Builder device check passed (2026-09-22); card fully closed.
 - [x] 20 Trust Proxy + Rate-Limit Headroom (Bugfix, post-ship) — "Can't load the station map." on the live app traced to `trust proxy` never being set: behind Railway's edge, `req.ip` was the proxy address shared by ALL users, so every 30/min limiter was one global bucket and a single person panning the map (~1–2 settles/sec) could exhaust it alone → 429s → hard error card on first load. Fixed with `app.set("trust proxy", 1)` (req.ip = real client IP) + map-view raised to 60/min (sustained zooming ≈ 30–60 settles/min; repeat viewports are free via the 0.5°-grid cache). Server `tsc` clean, `bun test` 84/84; live burst probe all-200 after deploy; closed after builder re-check (2026-09-22).
+- [x] 21 Worldwide Station Coverage (post-ship) — builder directive: "every station available on the WAQI API". `/api/search` opened worldwide (`normalizeSearchItem` gained a `requireMy` option, default ON so the station set keeps its guard; new pure `buildSearchSuggestions` drops coordinate-less rows and caps at 20 in WAQI relevance order); `/api/map-view`'s ≤30°/side span reject removed — viewports clamp/wrap into ≤30°×30° cells (`planViewportCells`) collected through the shared cap-sub-divided bounds collector (extracted to `sources/bounds.ts`, re-exported by world-overview so its public API is unchanged); partial cell failures degrade, every-cell-failed still throws → 502. UI: "Search a place worldwide" placeholder + aria (design.md bullets updated first), dropdown scrolls within ~6 rows, `preferCanvas` for dense pin sets; architecture.md carries both dated supersession notes. Server `bun test` 97/97 (13 new), app 14/14, both `tsc --noEmit` clean, build green; CI green (`36321038989`). Live probes local + Railway: `?q=tokyo/london/paris` worldwide, `?q=kuch` → Kuching first, `?q=x` → 400; **120°×55° box → 200 with 1,465 stations (was a 400 error card)**; **EU 30°×30° dense box → 1,366 stations, above the 1,024 single-call cap (sub-division proven live)**; MY box → 81 stations incl. table-only Kota Tinggi; `/api/world-overview` unaffected (3,557 stations, 200). Vercel serves the new `MapScreen` chunk (new placeholder present, old string gone, `preferCanvas` present). Shipped `ed7b524`; builder device check pending.
 
 ## In progress
 
-- [ ] Card 21 Worldwide Station Coverage (`work-cards/21-worldwide-station-coverage.md`,
-  opened 2026-09-27 on the builder's directive: "check out every station
-  worldwide… every station available on the WAQI API") — worldwide
-  `/api/search`, cap-subdivided `/api/map-view` collection, wide viewports
-  via clamped ≤30° cell planning, worldwide placeholder + scrollable
-  dropdown + canvas pins. Design/architecture notes landed first.
+- [ ] Card 21 Worldwide Station Coverage — **SHIPPED** (`ed7b524`, CI green
+  run 36321038989, live-verified on Railway + Vercel; server 97/97, app
+  14/14, both tsc clean). Awaiting the builder's device check only:
+  worldwide search, zoom-out at zoom ≥ 4 with no error card, dense-area
+  pins complete.
 
 ## Blockers
 

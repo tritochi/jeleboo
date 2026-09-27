@@ -139,3 +139,11 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   zoomed-in map's own query rhythm could empty it solo. Limits are now
   genuinely per-user and the map's headroom doubled; normal exploring no
   longer trips it.
+- **Card 21 — the whole world's stations:** the map screen's search was
+  Malaysia-only (the field even said "Search a place in Malaysia") — it now
+  searches every station WAQI knows worldwide, showing up to 20 suggestions
+  in relevance order. The map itself now returns *every* station in view:
+  wide zoomed-out views used to error out entirely, and dense areas (Europe,
+  India, east China) used to be silently cut off at 1,024 stations per query
+  — both fixed by fetching the view in bounded cells and sub-dividing the
+  crowded ones.
