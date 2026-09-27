@@ -8,7 +8,10 @@
 // each carrying uid, aqi, station.name, station.geo as [lat, lon] and
 // station.country. A server-side country === "MY" guard plus keyword-driven
 // queries means no Indonesian/Bruneian/Philippine stations can leak in —
-// there are no bounding boxes anywhere in this design.
+// there are no bounding boxes anywhere in this design. (Card 21: the
+// /api/search dropdown path now calls normalizeSearchItem with
+// { requireMy: false } via buildSearchSuggestions — worldwide suggestions;
+// this station-set path keeps the guard by default.)
 //
 // Caching is decoupled from the 15–30 min poll on freshness-need grounds,
 // not quota (WAQI's documented default quota is 1,000 req/s): the personal
@@ -86,22 +89,29 @@ export interface RawStateResult {
 
 // ---- Pure normalization + merge (unit-tested in test/stations.test.ts) ----
 
-export function normalizeSearchItem(item: RawSearchItem): StationMarker | null {
+export function normalizeSearchItem(
+    item: RawSearchItem,
+    opts: { requireMy?: boolean } = {}
+): StationMarker | null {
     if (!item || typeof item !== "object") return null;
     const uid = typeof item.uid === "number" ? item.uid : Number(item.uid);
     if (!Number.isFinite(uid)) return null;
 
-    // Malaysia-only guard. Verified live (2026-09-15): WAQI /search returns
+    // Malaysia-only guard — DEFAULT ON (the /api/stations state set keeps it;
+    // /api/search passes { requireMy: false } for worldwide suggestions since
+    // Card 21). Verified live (2026-09-15): WAQI /search returns
     // foreign stations freely (e.g. "kuch" matches Czech Republic and Japan),
     // and it OMITS the country field on many entries — Malaysian ones
     // included. So a bare "not MY → drop" is not enough: a result must be
     // explicitly MY *or* carry a "malaysia/..." slug; everything else goes.
-    const station = item.station;
-    const country = station?.country;
-    const url = station?.url;
-    const isMY = country === "MY"
-        || (typeof url === "string" && url.startsWith("malaysia/"));
-    if (!isMY) return null;
+    if (opts.requireMy ?? true) {
+        const station = item.station;
+        const country = station?.country;
+        const url = station?.url;
+        const isMY = country === "MY"
+            || (typeof url === "string" && url.startsWith("malaysia/"));
+        if (!isMY) return null;
+    }
 
     const aqi = typeof item.aqi === "number" ? item.aqi : Number(item.aqi);
     if (!Number.isFinite(aqi) || aqi < 0) return null; // "-" or missing → no marker
@@ -174,6 +184,31 @@ export function buildStationSet(results: readonly RawStateResult[], fetchedAt: s
         stale,
         failedStates,
     };
+}
+
+/** Max suggestions returned to the map dropdown (Card 21 — worldwide rows). */
+export const MAX_SEARCH_SUGGESTIONS = 20;
+
+/**
+ * Worldwide suggestion list for GET /api/search (Card 21): normalize every
+ * raw /search item with the MY guard OFF, drop rows with no usable
+ * coordinates (there is nowhere to pan the map), and cap the list at
+ * `limit` — WAQI returns results in relevance order, so the first `limit`
+ * win. Pure and unit-tested.
+ */
+export function buildSearchSuggestions(
+    items: readonly RawSearchItem[],
+    limit: number = MAX_SEARCH_SUGGESTIONS
+): StationMarker[] {
+    const out: StationMarker[] = [];
+    for (const raw of items) {
+        const m = normalizeSearchItem(raw, { requireMy: false });
+        if (!m) continue;
+        if (m.lat === 0 && m.lng === 0) continue; // unplaceable → no suggestion
+        out.push(m);
+        if (out.length >= limit) break;
+    }
+    return out;
 }
 
 // ---- Cached fetch layer ----

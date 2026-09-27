@@ -1,8 +1,10 @@
-// Jeleboo — tests for the worldwide map-view source (Card 16). Pure
-// functions only: no fetch, no DB, no clock. Covers the bounds-item
+// Jeleboo — tests for the worldwide map-view source (Cards 16 + 21). Pure
+// functions only: no fetch, no DB, no clock (Card 21's collection tests use
+// an injected fake fetchBox, still no network). Covers the bounds-item
 // normalizer (a different shape from /search), the name-suffix MY filter
 // (verified: bounds items carry no country/url fields), the Card-02 union
-// (65/73 coverage → all 73 preserved), viewport validation/rounding.
+// (65/73 coverage → all 73 preserved), viewport validation/rounding, the
+// span-cap removal, cell planning (clamp/wrap/cut), and the cell collector.
 
 import { describe, it, expect } from "bun:test";
 import {
@@ -12,9 +14,13 @@ import {
     normalizeViewport,
     viewportCacheKey,
     viewportIntersectsMyBox,
+    planViewportCells,
+    collectViewport,
     type RawBoundsItem,
+    type Viewport,
 } from "../src/sources/map-view";
 import { MALAYSIA_CITY_STATIONS } from "../src/sources/city-stations";
+import { BOUNDS_CAP } from "../src/sources/bounds";
 
 function item(overrides: Partial<RawBoundsItem> = {}): RawBoundsItem {
     return {
@@ -33,17 +39,19 @@ describe("normalizeViewport", () => {
         expect(v).toEqual({ lat1: 40.3, lng1: -74.6, lat2: 41.0, lng2: -73.5 });
     });
 
-    it("rejects reversed edges, non-numbers, and oversized boxes", () => {
+    it("rejects reversed edges and non-numbers", () => {
         expect(normalizeViewport({ lat1: 41, lng1: -74.6, lat2: 40.3, lng2: -73.5 })).toBeNull();
         expect(normalizeViewport({ lat1: 40.3, lng1: -74.6, lat2: 40.3, lng2: -73.5 })).toBeNull();
         expect(normalizeViewport({ lat1: "x", lng1: -74.6, lat2: 41, lng2: -73.5 })).toBeNull();
         expect(normalizeViewport({})).toBeNull();
-        // 31 degrees per side → over the cap
-        expect(normalizeViewport({ lat1: 0, lng1: -74.6, lat2: 31, lng2: -73.5 })).toBeNull();
     });
 
-    it("accepts a box exactly 30 degrees per side", () => {
+    it("accepts wide boxes — the ≤30° span cap is gone (Card 21)", () => {
+        // 31° used to be rejected here (400 at the route); wide zoom-4–6
+        // viewports are now valid and get clamped into ≤30° cells instead.
         expect(normalizeViewport({ lat1: 0, lng1: 0, lat2: 30, lng2: 30 })).not.toBeNull();
+        expect(normalizeViewport({ lat1: 0, lng1: -74.6, lat2: 31, lng2: -73.5 })).not.toBeNull();
+        expect(normalizeViewport({ lat1: 0, lng1: -60, lat2: 55, lng2: 60 })).not.toBeNull();
     });
 });
 
@@ -174,5 +182,121 @@ describe("unionMy", () => {
         expect(markers.length).toBe(1);
         expect(markers[0].lat).toBeCloseTo(3.139003); // table coords win
         expect(markers[0].lng).toBeCloseTo(101.686855);
+    });
+});
+
+describe("planViewportCells (Card 21 — clamp, wrap, ≤30° cut)", () => {
+    const cells = (v: Partial<Viewport>) => planViewportCells(v as Viewport);
+
+    it("returns a single cell for a box already within 30° per side", () => {
+        const out = cells({ lat1: 40, lng1: -74, lat2: 41, lng2: -73 });
+        expect(out).toEqual([{ lat1: 40, lng1: -74, lat2: 41, lng2: -73 }]);
+    });
+
+    it("cuts a wide box into ≤30° cells that tile it exactly", () => {
+        const out = cells({ lat1: 0, lng1: -60, lat2: 60, lng2: 60 }); // 60° × 120°
+        expect(out.length).toBe(8); // 2 lat rows × 4 lng cols
+        for (const c of out) {
+            expect(c.lat2 - c.lat1).toBeLessThanOrEqual(30);
+            expect(c.lng2 - c.lng1).toBeLessThanOrEqual(30);
+            expect(c.lat1).toBeGreaterThanOrEqual(0);
+            expect(c.lat2).toBeLessThanOrEqual(60);
+            expect(c.lng1).toBeGreaterThanOrEqual(-60);
+            expect(c.lng2).toBeLessThanOrEqual(60);
+        }
+        // Exact coverage: rows tile lat, cols tile lng — no gaps.
+        const latStarts = [...new Set(out.map((c) => c.lat1))].sort((a, b) => a - b);
+        expect(latStarts).toEqual([0, 30]);
+        const lngStarts = [...new Set(out.map((c) => c.lng1))].sort((a, b) => a - b);
+        expect(lngStarts).toEqual([-60, -30, 0, 30]);
+    });
+
+    it("splits a box crossing the antimeridian into in-range cells", () => {
+        const out = cells({ lat1: 0, lng1: 170, lat2: 20, lng2: 190 });
+        expect(out.length).toBe(2);
+        for (const c of out) {
+            expect(c.lng1).toBeGreaterThanOrEqual(-180);
+            expect(c.lng2).toBeLessThanOrEqual(180);
+        }
+        const totalLng = out.reduce((sum, c) => sum + (c.lng2 - c.lng1), 0);
+        expect(totalLng).toBeCloseTo(20); // full 20° span, no double coverage
+        expect(out.map((c) => c.lng1).sort((a, b) => a - b)).toEqual([-180, 170]);
+    });
+
+    it("collapses a ≥360° span to the whole world", () => {
+        const out = cells({ lat1: 0, lng1: -200, lat2: 10, lng2: 200 });
+        expect(out.length).toBe(12); // one lat row × twelve 30° columns
+        expect(Math.min(...out.map((c) => c.lng1))).toBe(-180);
+        expect(Math.max(...out.map((c) => c.lng2))).toBe(180);
+    });
+
+    it("clamps latitude to the poles and returns nothing for out-of-world boxes", () => {
+        const clamped = cells({ lat1: -100, lng1: 0, lat2: -50, lng2: 20 });
+        expect(clamped.length).toBe(2); // −90..−50 = 40° → 2 lat rows × 1 col
+        for (const c of clamped) {
+            expect(c.lat1).toBeGreaterThanOrEqual(-90);
+            expect(c.lat2).toBeLessThanOrEqual(-50);
+        }
+        expect(cells({ lat1: -100, lng1: 0, lat2: -95, lng2: 20 })).toEqual([]);
+    });
+});
+
+describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)", () => {
+    const marker = (uid: number) => ({
+        uid,
+        name: `Station ${uid}`,
+        lat: 1,
+        lng: 2,
+        aqi: 50,
+        band: "good" as const,
+        bandLabel: "Good",
+        lastUpdated: "2026-09-27T00:00:00Z",
+    });
+
+    it("sub-divides a capped cell instead of truncating at 1,024", async () => {
+        const calls: number[] = [];
+        const result = await collectViewport(
+            { lat1: 30, lng1: 0, lat2: 60, lng2: 30 }, // exactly one 30° cell
+            async (box) => {
+                const count = box.lat2 - box.lat1 >= 30 ? BOUNDS_CAP : 50;
+                calls.push(count);
+                return Array.from({ length: count }, (_, i) => marker(i));
+            }
+        );
+        // depth 0 hits the cap → four 15° quadrants at 50 each replace it.
+        expect(calls.length).toBe(5);
+        expect(result.markers.length).toBe(4 * 50);
+        expect(result.cellCount).toBe(1);
+        expect(result.failedCells).toBe(0);
+    });
+
+    it("fans a wide viewport out across its cells", async () => {
+        const boxes: Array<{ lat1: number; lng1: number; lat2: number; lng2: number }> = [];
+        const result = await collectViewport(
+            { lat1: 0, lng1: -60, lat2: 60, lng2: 60 }, // 8 cells
+            async (box) => {
+                boxes.push(box);
+                return [marker(boxes.length)];
+            }
+        );
+        expect(result.cellCount).toBe(8);
+        expect(result.markers.length).toBe(8);
+        expect(result.failedCells).toBe(0);
+        expect(boxes.every((b) => b.lat2 - b.lat1 <= 30 && b.lng2 - b.lng1 <= 30)).toBe(true);
+    });
+
+    it("counts cell failures without losing the cells that succeeded", async () => {
+        let n = 0;
+        const result = await collectViewport(
+            { lat1: 0, lng1: -60, lat2: 60, lng2: 60 }, // 8 cells
+            async () => {
+                const i = n++;
+                if (i === 0) throw new Error("upstream hiccup");
+                return [marker(i)];
+            }
+        );
+        expect(result.cellCount).toBe(8);
+        expect(result.failedCells).toBe(1);
+        expect(result.markers.length).toBe(7);
     });
 });

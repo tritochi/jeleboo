@@ -211,7 +211,11 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
 - `GET /api/search?q=...` — proxies WAQI `/search` for the location
   dropdown/suggestions. Debounced client-side (~300 ms, min 2 chars),
   rate-limited server-side per Security Notes. Normalized response:
-  `{ name, aqi, lat, lng, uid }`.
+  `{ name, aqi, lat, lng, uid }`. *(Superseded 2026-09-27, Card 21: the
+  suggestions are now **worldwide** — the original `country === "MY"` guard
+  is an option on `normalizeSearchItem` that `/api/stations`' state set keeps
+  by default, while the dropdown path drops coordinate-less rows and caps at
+  20, still in WAQI relevance order.)*
 
 ### Caching & freshness (why the map cache is decoupled from the poll)
 
@@ -394,9 +398,15 @@ stable overlay when a uid matches.
   freshness-need grounds as `MAP_CACHE_MINUTES`; quota is not the constraint
   — WAQI documents 1,000 req/s); cached-last-good served stale while a
   refresh runs, identical to `stations.ts`.
-- **Guards:** reject boxes wider/taller than 30° per side (400); client
+- **Guards:** reject non-finite or non-order-A viewports (400); client
   queries only on pan/zoom settle (~500 ms debounce) at zoom ≥ 4; existing
-  30/min/IP rate limiter.
+  30/min/IP rate limiter. *(Superseded 2026-09-27, Card 21 — builder
+  directive "every station worldwide": the ≤30°/side span reject is gone.
+  The server clamps any accepted viewport to the world, wraps it across the
+  antimeridian, cuts it into ≤30°×30° cells (≤72 worst case), and fetches
+  each cell with the same 1,024-cap sub-division the world-overview crawl
+  uses — wide or dense viewports return every station instead of 400-ing or
+  truncating, with upstream volume bounded by construction.)*
 - **project-brief.md caveats (applied with this confirmation):** the Now
   list's map line and the Non-Goals' "Coverage outside Malaysia" line both
   carry the explore-view exception so the documents agree with this section.

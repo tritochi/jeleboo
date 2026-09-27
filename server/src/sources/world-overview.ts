@@ -12,14 +12,15 @@
 // (they are the confirmed Card 16/17 behavior and are untouched here).
 
 import { normalizeBoundsItem, type MapViewMarker } from "./map-view";
+import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
+
+// The shared /map/bounds primitives (cap, grid size, sub-division, collector)
+// moved to ./bounds in Card 21 so map-view can reuse them without a circular
+// import; re-exported here so this module's public API is unchanged.
+export { BOUNDS_CAP, subdivide } from "./bounds";
+export type { ViewportBox } from "./bounds";
 
 const WAQI_BASE = "https://api.waqi.info";
-
-/** WAQI's per-request cap on bounds results (EU 30°×30° chunk = exactly 1,024). */
-export const BOUNDS_CAP = 1024;
-
-const CHUNK_DEGREES = 30;
-const MAX_DEPTH = 2;
 
 /** The 30°×30° base grid covering the whole world: 72 cells, all order-A. */
 export function worldGrid(): ViewportBox[] {
@@ -32,24 +33,7 @@ export function worldGrid(): ViewportBox[] {
     return boxes;
 }
 
-export interface ViewportBox {
-    lat1: number;
-    lng1: number;
-    lat2: number;
-    lng2: number;
-}
-
-/** Split a box into its four quadrants (used when a chunk hits the cap). */
-export function subdivide(box: ViewportBox): ViewportBox[] {
-    const midLat = (box.lat1 + box.lat2) / 2;
-    const midLng = (box.lng1 + box.lng2) / 2;
-    return [
-        { lat1: box.lat1, lng1: box.lng1, lat2: midLat, lng2: midLng },
-        { lat1: box.lat1, lng1: midLng, lat2: midLat, lng2: box.lng2 },
-        { lat1: midLat, lng1: box.lng1, lat2: box.lat2, lng2: midLng },
-        { lat1: midLat, lng1: midLng, lat2: box.lat2, lng2: box.lng2 },
-    ];
-}
+// ViewportBox + subdivide are re-exported from ./bounds (top of file).
 
 /** City token for one-per-city dedupe: the first comma-separated token of
  *  the station name, lowercased ("Cheras, Kuala Lumpur, …" → "cheras"). */
@@ -95,24 +79,8 @@ async function fetchChunk(box: ViewportBox, token: string): Promise<MapViewMarke
         .filter((m): m is MapViewMarker => m !== null);
 }
 
-/**
- * Collect one chunk, sub-dividing when it returns the cap (recursive,
- * max depth 2 — smallest cell 7.5°×7.5°). `fetchBox` is injectable so
- * tests can fake the cap. Chunk failures throw up to collectWorld, which
- * records them and keeps the rest (partial sets beat none).
- */
-async function collectChunk(
-    box: ViewportBox,
-    depth: number,
-    fetchBox: (box: ViewportBox) => Promise<MapViewMarker[]>
-): Promise<MapViewMarker[]> {
-    const items = await fetchBox(box);
-    if (items.length < BOUNDS_CAP || depth >= MAX_DEPTH) return items;
-    const collected = await Promise.all(
-        subdivide(box).map((c) => collectChunk(c, depth + 1, fetchBox))
-    );
-    return collected.flat();
-}
+// The capped-cell collector (collectChunk) moved to ./bounds in Card 21 —
+// collectWorldFrom below uses the shared one.
 
 async function collectWorld(token: string): Promise<WorldOverviewResult> {
     return collectWorldFrom((box) => fetchChunk(box, token));

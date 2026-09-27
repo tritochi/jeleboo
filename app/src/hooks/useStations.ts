@@ -116,7 +116,7 @@ export interface SearchResult {
     uid: number;
 }
 
-/** Debounced Malaysian place suggestions from the backend (Card 11 route). */
+/** Debounced worldwide place suggestions from the backend (Card 11 route; worldwide since Card 21). */
 export function usePlaceSearch(query: string): { results: SearchResult[]; searching: boolean } {
     const [results, setResults] = useState<SearchResult[]>([]);
     const [searching, setSearching] = useState(false);

@@ -269,8 +269,8 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                 <input
                     type="search"
                     className="map-search-input"
-                    placeholder="Search a place in Malaysia"
-                    aria-label="Search a place in Malaysia"
+                    placeholder="Search a place worldwide"
+                    aria-label="Search a place worldwide"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />
@@ -314,10 +314,14 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
             ) : null}
 
             <div className="map-area">
+                {/* Canvas renderer: dense worldwide pin sets (thousands of
+                    circles at wide zoom ≥ 4 views) stay smooth — same visuals,
+                    same 44px hit targets (Card 21). */}
                 <MapContainer
                     center={[3.9, 108]}
                     zoom={6}
                     scrollWheelZoom
+                    preferCanvas
                     className="map-canvas"
                     attributionControl={false}
                 >

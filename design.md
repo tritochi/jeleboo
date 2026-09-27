@@ -92,13 +92,16 @@ Calm.
   search field on the map screen (same secondary style, 44px+ target). It
   returns to the reading screen without changing any state — no threshold,
   location, or notification settings are touched by any map interaction.
-- Layout (single column, top to bottom): search field ("Search a place in
-  Malaysia"), the map area (fills remaining height, at least 320px tall), and
+- Layout (single column, top to bottom): search field ("Search a place
+  worldwide"), the map area (fills remaining height, at least 320px tall), and
   an attribution line ("© OpenStreetMap contributors · AQI data: WAQI") in
   small muted text pinned under the map — attribution is always visible.
 - Search: dropdown suggestions directly below the field, debounced ~300 ms
   from 2+ characters; each row shows the place name and its current AQI, is
-  at least 44px tall, and is keyboard-reachable. Selecting a result pans and
+  at least 44px tall, and is keyboard-reachable. Suggestions are
+  **worldwide** (any WAQI station — up to 20 rows in WAQI relevance order,
+  foreign places included) and the list scrolls within a bounded height
+  (~6 visible rows) so it never covers the map. Selecting a result pans and
   zooms the map to it and opens its info card. **Search is viewing-only**: it
   never changes the device's threshold, recorded location, or notification
   settings — saved locations / threshold-tied places are the Later-list
@@ -125,7 +128,8 @@ Calm.
   search field → map → attribution.
 - Worldwide explore mode (Cards 16–17): the "Map of Malaysian stations"
   button renames to **"Explore stations"**; markers come from live viewport
-  queries worldwide — Malaysia included — with the same six-band palette and
+  queries worldwide — Malaysia included, every station WAQI returns for the
+  viewport (no per-response result cap) — with the same six-band palette and
   the same fixed-order station card; Malaysia is not visually singled out.
   All existing Map Screen rules (states, attribution, 320px, viewing-only
   search) carry over unchanged.

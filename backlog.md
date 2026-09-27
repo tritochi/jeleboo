@@ -15,6 +15,8 @@ Format per item: `- [size guess] Description (how it was noticed)`
 - [small] Public `/status` page — backend up, last poll X min ago, WAQI reachable. Checked: **no last-poll field exists anywhere** (`readings.recorded_at` is the upstream measurement time, not poll time), so the card adds a small poll-time field (kv/meta row or column) plus the route (builder QoL brainstorm + code check)
 - [small] Good-day microcopy variation (e.g. "clear enough to open the windows today") instead of a bare green Good number — copy-only, no new logic, must keep design.md's calm tone (builder QoL brainstorm, post-ship)
 
+- [medium] Worldwide station coverage — search is Malaysia-only (`?q=tokyo` → 0, the field literally says "Search a place in Malaysia") and `/api/map-view` rejects viewports >30°/side (zoom 4–6 desktop boxes 400 → error card) plus silently truncates at WAQI's 1,024-per-call bounds cap in dense regions (builder directive 2026-09-27: "check out every station worldwide… every station available on the WAQI API")
+
 ### [medium] — additive to schema/logic; short spec line before the card, no architecture pass
 
 - [medium] Dominant pollutant shown in the UI — **checked: not a pure display change.** WAQI's `dominentpol` field is neither fetched (`parseWaqiResponse` never reads it) nor stored (`readings` has no column), so the card adds parser support + a `readings.dominant_pollutant` column (migration) + route/UI passthrough (builder QoL brainstorm + code check)
@@ -39,6 +41,8 @@ Format per item: `- [size guess] Description (how it was noticed)`
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
 
 ## Promoted
+
+- [medium] → `work-cards/21-worldwide-station-coverage.md` — worldwide suggestions (`/api/search` no longer MY-only, cap 20, drop coordinate-less rows), cap-subdivided map-view collection shared with the world-overview crawl, and the ≤30°/side viewport reject replaced by clamped/wrapped ≤30° cell planning so wide zoom-4–6 viewports return every station instead of 400-ing (promoted 2026-09-27 — direct builder directive, not a queued backlog pick)
 
 - [medium] → `work-cards/13-quiet-hours.md` — quiet hours for notifications (per-device UTC window in the `devices` schema) with the 300+ hazardous override explicitly bypassing quiet hours (promoted 2026-09-15 — builder priority 1 of 3: quiet hours → city-change detection → DOE guidance line)
 

@@ -11,7 +11,12 @@
 //    table-only stations get live AQI via their slugs (the same
 //    /feed/<slug> path the reading fallback uses — Card 10 overlay rules).
 //
-// Caching: one upstream call per distinct 0.5°-rounded viewport per TTL
+// Completeness (Card 21): a refresh fans the viewport out into ≤30°×30°
+// cells (clamped to the world, antimeridian-wrapped) and collects each
+// through the shared cap-sub-divided bounds collector — dense regions and
+// wide zooms return every station, never a 1,024 truncation or a 400.
+//
+// Caching: one refresh per distinct 0.5°-rounded viewport per TTL
 // (MAP_VIEW_CACHE_MINUTES, default 60) — freshness-need grounds, not quota.
 // Cached-last-good is served stale while a refresh runs (stations.ts
 // pattern). Order A (lat1,lng1,lat2,lng2) only — order B silently returns 0.
@@ -19,6 +24,7 @@
 import { MALAYSIA_CITY_STATIONS, type CityStation } from "./city-stations";
 import { classifyAqi, type SeverityBand } from "../theme/severity";
 import { fetchByCitySlug, parseWaqiResponse } from "./waqi";
+import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
 
 const WAQI_BASE = "https://api.waqi.info";
 
@@ -56,12 +62,12 @@ export interface Viewport {
     lng2: number;
 }
 
-const MAX_SPAN_DEGREES = 30;
-
 /**
  * Validate + normalize a viewport into order-A numbers, or null when
- * invalid: all four values finite, lat1 < lat2, lng1 < lng2, and the box
- * spans at most 30° per side (architecture.md guard). Pure and tested.
+ * invalid: all four values finite, lat1 < lat2, lng1 < lng2. No span cap
+ * (Card 21 — superseded the ≤30°/side guard): planViewportCells clamps and
+ * wraps any accepted box to the world and cuts it into ≤30° cells, so a
+ * wide viewport is a completeness concern, not a rejection. Pure and tested.
  */
 export function normalizeViewport(raw: Partial<Record<"lat1" | "lng1" | "lat2" | "lng2", unknown>>): Viewport | null {
     const out: Record<string, number> = {};
@@ -71,7 +77,6 @@ export function normalizeViewport(raw: Partial<Record<"lat1" | "lng1" | "lat2" |
         out[k] = v;
     }
     if (out.lat1 >= out.lat2 || out.lng1 >= out.lng2) return null;
-    if (out.lat2 - out.lat1 > MAX_SPAN_DEGREES || out.lng2 - out.lng1 > MAX_SPAN_DEGREES) return null;
     return { lat1: out.lat1, lng1: out.lng1, lat2: out.lat2, lng2: out.lng2 };
 }
 
@@ -79,6 +84,77 @@ export function normalizeViewport(raw: Partial<Record<"lat1" | "lng1" | "lat2" |
 export function viewportCacheKey(v: Viewport): string {
     const r = (x: number) => Math.round(x * 2) / 2;
     return [v.lat1, v.lng1, v.lat2, v.lng2].map(r).join(",");
+}
+
+/**
+ * Cut a viewport into ≤30°×30° fetch cells (Card 21). Latitude clamps to
+ * ±90; longitude clamps to one world and splits at the antimeridian when
+ * the box crosses it, so every cell stays in valid order-A WAQI coordinates.
+ * A span ≥ 360° (ultra-wide screen past one world) collapses to the whole
+ * world — any duplicate coverage dedupes by uid later. Pure and unit-tested.
+ */
+export function planViewportCells(v: Viewport): ViewportBox[] {
+    const lat1 = Math.max(-90, v.lat1);
+    const lat2 = Math.min(90, v.lat2);
+    if (lat1 >= lat2) return [];
+
+    let lngSegments: Array<[number, number]>;
+    if (v.lng2 - v.lng1 >= 360) {
+        lngSegments = [[-180, 180]];
+    } else {
+        lngSegments = [];
+        let start = v.lng1;
+        while (start < v.lng2) {
+            // Position of `start` mapped into [-180, 180).
+            const base = ((((start + 180) % 360) + 360) % 360) - 180;
+            const end = Math.min(v.lng2, start + (180 - base));
+            lngSegments.push([base, base + (end - start)]);
+            start = end;
+        }
+    }
+
+    const cells: ViewportBox[] = [];
+    for (const [lngA, lngB] of lngSegments) {
+        for (let a = lat1; a < lat2; a += CHUNK_DEGREES) {
+            for (let b = lngA; b < lngB - 1e-9; b += CHUNK_DEGREES) {
+                cells.push({
+                    lat1: a,
+                    lng1: b,
+                    lat2: Math.min(a + CHUNK_DEGREES, lat2),
+                    lng2: Math.min(b + CHUNK_DEGREES, lngB),
+                });
+            }
+        }
+    }
+    return cells;
+}
+
+export interface ViewportCollection {
+    markers: MapViewMarker[];
+    cellCount: number;
+    failedCells: number;
+}
+
+/**
+ * Fetch every planned cell through the shared capped collector (Card 21):
+ * each cell sub-divides when it hits WAQI's 1,024-item cap. Cell failures
+ * reject individually — counted here, logged/degraded by the caller (the
+ * world-overview pattern: partial sets beat none). Exported for tests with
+ * an injected fetchBox.
+ */
+export async function collectViewport(
+    v: Viewport,
+    fetchBox: (box: ViewportBox) => Promise<MapViewMarker[]>
+): Promise<ViewportCollection> {
+    const cells = planViewportCells(v);
+    const results = await Promise.allSettled(
+        cells.map((c) => collectChunk(c, 0, fetchBox))
+    );
+    const failedCells = results.filter((r) => r.status === "rejected").length;
+    const markers = results.flatMap((r) =>
+        r.status === "fulfilled" ? r.value : []
+    );
+    return { markers, cellCount: cells.length, failedCells };
 }
 
 // ---- Normalization + MY selection + union (pure, unit-tested) ----
@@ -174,10 +250,21 @@ async function fetchTableOnlyStation(t: CityStation, token: string): Promise<Map
 }
 
 async function refreshMapView(v: Viewport, token: string): Promise<MapViewResponse> {
-    const rawItems = await fetchBounds(v, token);
-    const all = rawItems
-        .map(normalizeBoundsItem)
-        .filter((m): m is MapViewMarker => m !== null);
+    // Cell-planned fetch (Card 21): every ≤30° cell, cap-sub-divided, so
+    // wide viewports and dense regions return the complete station set.
+    const fetchBox = async (box: ViewportBox): Promise<MapViewMarker[]> => {
+        const raw = await fetchBounds(box, token);
+        return raw
+            .map(normalizeBoundsItem)
+            .filter((m): m is MapViewMarker => m !== null);
+    };
+    const { markers: all, cellCount, failedCells } = await collectViewport(v, fetchBox);
+    if (failedCells > 0) {
+        console.warn(`[map-view] ${failedCells}/${cellCount} bounds cells failed this refresh`);
+        if (failedCells === cellCount) {
+            throw new Error("Every bounds cell failed");
+        }
+    }
 
     // The MY union (and its slug fetches) applies only when the viewport
     // actually intersects Malaysia — otherwise a New York view would pull

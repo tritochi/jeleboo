@@ -1,6 +1,7 @@
 // Jeleboo — GET /api/map-view (Card 16, confirmed "Worldwide explore mode").
 // Proxies WAQI /map/bounds for the map's viewport with the token kept
-// server-side; validates + normalizes the viewport (order A, ≤30°/side) and
+// server-side; validates + normalizes the viewport (order A — any span is
+// accepted and clamped into ≤30° cells server-side since Card 21) and
 // serves the MY-union'd cached set.
 
 import { Router } from "express";
@@ -41,7 +42,7 @@ router.get("/map-view", async (req, res) => {
     const viewport = normalizeViewport(raw);
     if (viewport === null) {
         res.status(400).json({
-            error: "Invalid viewport: lat1,lng1,lat2,lng2 must be numbers with lat1 < lat2 and lng1 < lng2, spanning at most 30 degrees per side.",
+            error: "Invalid viewport: lat1,lng1,lat2,lng2 must be numbers with lat1 < lat2 and lng1 < lng2.",
         });
         return;
     }

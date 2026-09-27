@@ -7,6 +7,8 @@ import { describe, it, expect } from "bun:test";
 import {
     normalizeSearchItem,
     buildStationSet,
+    buildSearchSuggestions,
+    MAX_SEARCH_SUGGESTIONS,
     malaysiaStateKeywords,
     type RawStateResult,
     type RawSearchItem,
@@ -192,6 +194,69 @@ describe("makeRateLimiter (shared)", () => {
         expect(allow("5.5.5.5")).toBe(true);
         expect(allow("5.5.5.5")).toBe(false);
         expect(allow("6.6.6.6")).toBe(true);
+    });
+});
+
+describe("normalizeSearchItem — worldwide mode (Card 21)", () => {
+    it("keeps foreign stations when requireMy is false", () => {
+        const foreign: RawSearchItem = {
+            uid: 999999,
+            aqi: 42,
+            station: { name: "Tokyo", geo: [35.68, 139.69], country: "JP" },
+            time: { v: 1789000000 },
+        };
+        expect(normalizeSearchItem(foreign)).toBeNull(); // default: MY-only
+        const worldwide = normalizeSearchItem(foreign, { requireMy: false });
+        expect(worldwide).not.toBeNull();
+        expect(worldwide!.name).toBe("Tokyo");
+        expect(worldwide!.lat).toBeCloseTo(35.68);
+    });
+
+    it("keeps foreign entries that omit the country field entirely", () => {
+        const noCountry: RawSearchItem = {
+            uid: 12345,
+            aqi: 77,
+            station: { name: "Delhi", geo: [28.61, 77.21], url: "india/delhi/delhi" },
+            time: { v: 1789000000 },
+        };
+        expect(normalizeSearchItem(noCountry)).toBeNull(); // default: MY-only
+        expect(normalizeSearchItem(noCountry, { requireMy: false })).not.toBeNull();
+    });
+});
+
+describe("buildSearchSuggestions (Card 21 — worldwide dropdown)", () => {
+    const suggestion = (uid: number, overrides: Partial<RawSearchItem> = {}): RawSearchItem => ({
+        uid,
+        aqi: 55,
+        station: { name: `Place ${uid}`, geo: [10, 110], country: "MY" },
+        time: { v: 1789000000 },
+        ...overrides,
+    });
+
+    it("returns worldwide results — foreign and Malaysian mixed", () => {
+        const out = buildSearchSuggestions([
+            suggestion(1, { station: { name: "London", geo: [51.5, -0.12], country: "GB" } }),
+            suggestion(2), // a Malaysian row
+        ]);
+        expect(out.map((m) => m.name)).toEqual(["London", "Place 2"]);
+    });
+
+    it("drops coordinate-less rows (nowhere to pan the map)", () => {
+        const out = buildSearchSuggestions([
+            suggestion(1, { station: { name: "Nowhere", geo: [0, 0], country: "US" } }),
+            suggestion(2),
+        ]);
+        expect(out.map((m) => m.uid)).toEqual([2]);
+    });
+
+    it("caps the list at the limit, preserving WAQI relevance order", () => {
+        const many = Array.from({ length: 30 }, (_, i) => suggestion(i + 1));
+        const out = buildSearchSuggestions(many);
+        expect(out.length).toBe(MAX_SEARCH_SUGGESTIONS);
+        expect(out[0].uid).toBe(1);
+        expect(out[out.length - 1].uid).toBe(MAX_SEARCH_SUGGESTIONS);
+
+        expect(buildSearchSuggestions(many, 5).length).toBe(5);
     });
 });
 

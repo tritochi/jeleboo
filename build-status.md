@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — worldwide map complete (cards 16–19 + Card 20 hotfix done); next item from backlog
-- Current work card: none (Card 20 hotfix shipped + closed; backlog is the queue)
+- Current phase: Iterate — Card 21 (worldwide station coverage) in progress
+- Current work card: `work-cards/21-worldwide-station-coverage.md` (in progress, opened 2026-09-27)
 
 ## Completed work cards
 
@@ -40,9 +40,12 @@
 
 ## In progress
 
-- None — Cards 16–20 (worldwide explore + world overview + rate-limit
-  hotfix) all shipped and closed; builder checkpoints complete. Next item
-  comes from `backlog.md`.
+- [ ] Card 21 Worldwide Station Coverage (`work-cards/21-worldwide-station-coverage.md`,
+  opened 2026-09-27 on the builder's directive: "check out every station
+  worldwide… every station available on the WAQI API") — worldwide
+  `/api/search`, cap-subdivided `/api/map-view` collection, wide viewports
+  via clamped ≤30° cell planning, worldwide placeholder + scrollable
+  dropdown + canvas pins. Design/architecture notes landed first.
 
 ## Blockers
 
@@ -63,6 +66,15 @@
 - Backend host during Card 08: the builder considered Supabase and **deferred it to post-v1** — v1 ships on the current Bun + Express + SQLite stack on a persistent process host (Railway/Fly/Render choice pending); Supabase migration (Postgres + Edge Functions + `pg_cron`) tracked as an Open backlog item
 - Add to Home Screen: native prompt on Android, manual instructions on iOS — see `architecture.md`'s Component Map
 - Map & Station Explorer (2026-09-15): confirmed by the builder — search-based markers (WAQI `/map/bounds` is broken for Malaysia, verified live; `/search` per state works, 17/17, ≈82 stations), decoupled `MAP_CACHE_MINUTES` cache on **freshness-need** grounds (not quota — WAQI's docs allow 1,000 req/s; the personal reading gates a push and polls tightly, the map tolerates an hour of staleness), and **viewing-only** search in v1 (threshold-tied places are the Later-list watchlist item, own architecture pass later). CI pipeline also live (GitHub Actions, both halves green).
+- Worldwide station coverage (2026-09-27, builder directive): Jeleboo must
+  "check out every station worldwide — every station available on the WAQI
+  API". This supersedes two earlier guards: `/api/search`'s Malaysia-only
+  filter opens to worldwide suggestions (the `/api/stations` state set keeps
+  its MY guard), and `/api/map-view`'s ≤30°/side viewport reject is replaced
+  by clamped/wrapped ≤30° cell fetches with WAQI's 1,024 cap sub-divided per
+  cell — both recorded as dated notes in `architecture.md`. Zoom gates (< 4
+  overview / ≥ 4 pins), the overview's one-per-city dedupe, and `/api/reading`'s
+  Malaysia box all stay as confirmed.
 
 ## Last verified state
 

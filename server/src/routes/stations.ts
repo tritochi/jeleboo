@@ -1,5 +1,6 @@
 // Jeleboo — GET /api/stations (cached Malaysian station markers) and
-// GET /api/search?q=... (live WAQI /search proxy for the dropdown).
+// GET /api/search?q=... (live WAQI /search proxy for the dropdown —
+// worldwide since Card 21: coordinate-less rows dropped, capped at 20).
 // Card 11 of the Map & Station Explorer — architecture.md confirmed 2026-09-15.
 // Same never-expose-the-key pattern as /api/reading: the token stays here.
 
@@ -7,7 +8,7 @@ import { Router } from "express";
 import { getWaqiToken } from "../sources/waqi";
 import { getStationSet } from "../sources/stations";
 import { makeRateLimiter } from "../lib/rate-limit";
-import { normalizeSearchItem } from "../sources/stations";
+import { buildSearchSuggestions } from "../sources/stations";
 
 const router = Router();
 
@@ -72,11 +73,11 @@ router.get("/search", async (req, res) => {
         if (json.status !== "ok" || !Array.isArray(json.data)) {
             throw new Error("WAQI upstream error");
         }
-        // Normalize + MY-only, same pipeline as the station set.
-        const results = (json.data as Parameters<typeof normalizeSearchItem>[0][])
-            .map(normalizeSearchItem)
-            .filter((m): m is NonNullable<typeof m> => m !== null)
-            .map((m) => ({ name: m.name, aqi: m.aqi, lat: m.lat, lng: m.lng, uid: m.uid }));
+        // Worldwide normalize + coordinate-less rows dropped + capped at 20
+        // (Card 21) — WAQI relevance order preserved.
+        const results = buildSearchSuggestions(
+            json.data as Parameters<typeof buildSearchSuggestions>[0]
+        ).map((m) => ({ name: m.name, aqi: m.aqi, lat: m.lat, lng: m.lng, uid: m.uid }));
         res.json({ results });
     } catch (err) {
         console.error("[search] failed:", err instanceof Error ? err.message : err);
