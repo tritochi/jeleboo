@@ -77,7 +77,9 @@ design.md's reading-card section gains the location-update hint bullet
       live (stored + returned in `GET /api/devices/:id`; >200 chars → 400).
 - [x] `bun test` green both halves (server 62/62, app 10/10); both `tsc`
       clean; build clean; CI green (`07a23db`).
-- [x] Live on Vercel/Railway; builder device check pending to close the card.
+- [x] Live on Vercel/Railway; builder device check verified — `build-status.md`
+      already records this card as builder-verified; stale note synced here
+      2026-09-22.
 
 ## Learner checkpoint (per prompts/06)
 

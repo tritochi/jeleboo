@@ -90,7 +90,8 @@ built. No new colors; hazardous-bypass copy stays plain-language.
 - [x] `bun test` green incl. new coverage (62/62); both `tsc` clean; CI green
       (`dcb794d`).
 - [x] UI saves/restores quiet hours (live bundle contains the control);
-      builder device check pending to close the card.
+      builder device check verified — `build-status.md` already records this
+      card as builder-verified; stale note synced here 2026-09-22.
 
 ## Learner checkpoint (per prompts/06)
 

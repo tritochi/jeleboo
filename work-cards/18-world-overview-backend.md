@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Not started (blocked by Cards 16–17)
+Done (2026-09-20) — shipped in `fc9f8bd`; boxes synced 2026-09-22 (all verifications recorded in `build-status.md`).
 
 ## Why
 
@@ -75,10 +75,11 @@ only.
 
 ## Done-when
 
-- [ ] `/api/world-overview` live locally + on Railway with the deduped
+- [x] `/api/world-overview` live locally + on Railway with the deduped
       global set; `totalRaw` + entry count recorded in build-status.
-- [ ] Cap subdivision proven by test; chunk failures don't break refresh.
-- [ ] `bun test` green incl. new coverage; server `tsc` clean; CI green.
+- [x] Cap subdivision proven by test; chunk failures don't break refresh.
+- [x] `bun test` green incl. new coverage; server `tsc` clean; CI green.
+      (Boxes synced 2026-09-22 — verifications recorded in `build-status.md`.)
 
 ## Learner checkpoint (per prompts/06)
 

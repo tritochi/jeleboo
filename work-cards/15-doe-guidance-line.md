@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Done — copy shipped on Vercel per the builder's option-1 unblock (National Haze Action Plan sourcing; agent-side PDF fetch was bot-blocked, fallback citation builder-attested — see Research log); builder device check pending (see `build-status.md`)
+Done — copy shipped on Vercel per the builder's option-1 unblock (National Haze Action Plan sourcing; agent-side PDF fetch was bot-blocked, fallback citation builder-attested — see Research log); builder device check verified (builder visual check passed per `build-status.md`; stale note synced 2026-09-22)
 
 ## Why
 
@@ -84,8 +84,8 @@ both thresholds confirmed present in the live Vercel bundle
       deployed bundle).
 - [x] design.md bullet added before the UI; 320px-safe muted styling.
 - [x] `bun test` green (app 10/10), both `tsc` clean, build clean, CI green.
-- [ ] Builder device check (visual: line renders under the reading card,
-      caveat present) to fully close the card.
+- [x] Builder device check (visual: line renders under the reading card,
+      caveat present) — passed per `build-status.md` (synced 2026-09-22).
 
 ## Learner checkpoint (per prompts/06)
 

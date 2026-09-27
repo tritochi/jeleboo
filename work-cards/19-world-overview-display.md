@@ -6,8 +6,8 @@ Feature
 
 ## Status
 
-Done (2026-09-20) — shipped in `092bfae`; the only open item is the builder's
-device check on the crossover (learner checkpoint below). Post-audit fixes
+Done (2026-09-20) — shipped in `092bfae`; closed 2026-09-22 after the builder's device check
+on the crossover (learner checkpoint below). Post-audit fixes
 included: duplicate `minutesAgo` removed from the new hook, speculative
 `station_name` field dropped (the type now exactly matches the server's
 `MapViewMarker` shape), an orphan `zoom` comment removed, header updated, and
@@ -77,7 +77,8 @@ equal-precision with live pins.
 - [x] Live on Vercel (overview strings verified in the deployed
       `MapScreen-*.js` chunk) against live Railway (`/api/world-overview`
       healthy: 3,557 stations, `stale: false`).
-- [ ] Builder device check (learner checkpoint below) — the only open item.
+- [x] Builder device check (learner checkpoint passed 2026-09-22 — user
+      continued with no issues reported.)
 
 ## Learner checkpoint (per prompts/06)
 

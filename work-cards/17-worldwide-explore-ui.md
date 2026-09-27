@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Done — verified locally and live on Vercel/Railway (see `build-status.md`); builder device check pending
+Done — verified locally and live on Vercel/Railway; builder device check verified (`build-status.md` records this card as builder-verified; stale note synced 2026-09-22)
 
 ## Why
 
@@ -69,8 +69,9 @@ single-out rule). No new colors; no Malaysia-specific visual treatment.
       green (`5b1cd18`); `/api/stations` no longer referenced by the map
       bundle (verified) — retired as the map's marker source per the
       confirmed architecture.
-- [x] Live on Vercel against live Railway; builder device check pending to
-      fully close.
+- [x] Live on Vercel against live Railway; builder device check verified
+      (`build-status.md` records this card as builder-verified; stale note
+      synced 2026-09-22).
 
 ## Learner checkpoint (per prompts/06)
 

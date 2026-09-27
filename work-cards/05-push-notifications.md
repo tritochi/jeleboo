@@ -95,4 +95,4 @@ If `web-push` fails to send with a VAPID error after regenerating keys twice, st
 
 ## Status
 
-In progress — see `build-status.md`
+Done — see `build-status.md` (stale status synced 2026-09-22)
