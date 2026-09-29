@@ -263,12 +263,12 @@ describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)",
                 return Array.from({ length: count }, (_, i) => marker(i));
             }
         );
-        // 30° → 15° → 7.5° → 3.75°: 1 + 4 + 16 + 64 = 85 fetches; every
-        // level's items stay in the union (1,024 + 200 + 800 + 3,200) —
-        // /map/bounds returns different station sets per box size, so
-        // ancestor items are kept rather than replaced.
-        expect(calls.length).toBe(85);
-        expect(result.markers.length).toBe(1024 + 4 * 50 + 16 * 50 + 64 * 50);
+        // 30° → 15° → 7.5°: 1 + 4 + 16 = 21 fetches; every level's items
+        // stay in the union (1,024 + 200 + 800) — /map/bounds returns
+        // different station sets per box size, so ancestor items are kept
+        // rather than replaced.
+        expect(calls.length).toBe(21);
+        expect(result.markers.length).toBe(1024 + 4 * 50 + 16 * 50);
         expect(result.cellCount).toBe(1);
         expect(result.failedCells).toBe(0);
     });
@@ -283,10 +283,10 @@ describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)",
             }
         );
         expect(result.cellCount).toBe(8);
-        expect(result.markers.length).toBe(8 * 85); // 8 cells × (1+4+16+64) nodes
+        expect(result.markers.length).toBe(8 * 21); // 8 cells × (1+4+16) nodes
         expect(result.failedCells).toBe(0);
         expect(boxes.every((b) => b.lat2 - b.lat1 <= 30 && b.lng2 - b.lng1 <= 30)).toBe(true);
-        expect(Math.min(...boxes.map((b) => b.lat2 - b.lat1))).toBe(3.75); // leaf target reached
+        expect(Math.min(...boxes.map((b) => b.lat2 - b.lat1))).toBe(7.5); // leaf target reached
     });
 
     it("sub-divides oversized cells even far below the cap, keeping every node's items", async () => {
@@ -304,16 +304,16 @@ describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)",
                 return [marker(calls)];
             }
         );
-        expect(calls).toBe(85); // no cap anywhere, still fanned to 3.75°
+        expect(calls).toBe(21); // no cap anywhere, still fanned to 7.5°
         const uids = new Set(result.markers.map((m) => m.uid));
-        expect(uids.size).toBe(85); // root + every descendant item survived
+        expect(uids.size).toBe(21); // root + every descendant item survived
         expect(result.failedCells).toBe(0);
     });
 
-    it("leaves a ≤3.75° cell as a single fetch (no needless fan-out)", async () => {
+    it("leaves a box already at the leaf target as a single fetch (no needless fan-out)", async () => {
         let calls = 0;
         const result = await collectViewport(
-            { lat1: 0, lng1: 0, lat2: 3, lng2: 3 },
+            { lat1: 0, lng1: 0, lat2: 7.5, lng2: 7.5 },
             async () => {
                 calls += 1;
                 return [marker(1)];
@@ -335,6 +335,6 @@ describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)",
         );
         expect(result.cellCount).toBe(8);
         expect(result.failedCells).toBe(1);
-        expect(result.markers.length).toBe(7 * 85); // the seven healthy cells fan out fully
+        expect(result.markers.length).toBe(7 * 21); // the seven healthy cells fan out fully
     });
 });

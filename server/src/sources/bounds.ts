@@ -28,17 +28,20 @@ export const CHUNK_DEGREES = 30;
  *   - Delhi 7.5° box → 24 items, its four 3.75° children → 29 union;
  *   - the same 3.75° box → 20, its four 1.875° children → 21 union;
  *   - EU 30° box (cap-split path) → 1,366 vs 1,577 across 7.5° cells.
- * Splitting to CHUNK_DEGREES/8 = 3.75° keeps the measured loss ≤ ~5% while
- * bounding the leaf fan-out (4³ per 30° cell).
+ * 7.5° captures the bulk of that gap (~15% more stations on dense regions)
+ * at 21 node fetches per 30° cell (~1,500 per world refresh). A 3.75° floor
+ * would add the last ~5% but needs 6,100 calls/refresh — proven to trip
+ * upstream throttling (whole child generations failed, overview degraded to
+ * roots-only), so 3.75° stays a future lever, not the shipped rule.
  */
-export const TARGET_CELL_DEGREES = CHUNK_DEGREES / 8;
+export const TARGET_CELL_DEGREES = CHUNK_DEGREES / 4;
 
 /**
- * Max sub-division depth from a ≤30° base cell: 30° → 15° → 7.5° → 3.75°,
- * i.e. exactly deep enough to reach TARGET_CELL_DEGREES. Doubles as a
- * recursion guard for any oversized input the planners shouldn't pass.
+ * Max sub-division depth from a ≤30° base cell: 30° → 15° → 7.5°, i.e.
+ * exactly deep enough to reach TARGET_CELL_DEGREES. Doubles as a recursion
+ * guard for any oversized input the planners shouldn't pass.
  */
-const MAX_DEPTH = 3;
+const MAX_DEPTH = 2;
 
 /** Split a box into its four quadrants (halves both edges, stays inside). */
 export function subdivide(box: ViewportBox): ViewportBox[] {
@@ -67,7 +70,7 @@ export type FetchBox = (box: ViewportBox) => Promise<MapViewMarker[]>;
 /**
  * Collect one chunk: fetch this box, then sub-divide when the response hits
  * WAQI's cap OR the box is larger than TARGET_CELL_DEGREES (recursive, max
- * depth 3). Ancestor items are kept alongside the descendants' — /map/bounds
+ * depth 2). Ancestor items are kept alongside the descendants' — /map/bounds
  * station sets differ by box size in BOTH directions (children find stations
  * the parent omitted, the parent holds stations no child returns), so the
  * union is the only order-independent answer for "every station".
@@ -75,9 +78,11 @@ export type FetchBox = (box: ViewportBox) => Promise<MapViewMarker[]>;
  *
  * Failure semantics (partial sets beat none): this node's own fetch failing
  * throws to the caller, which records the failed cell/chunk and keeps the
- * rest. A failing descendant only drops that subtree — siblings and this
- * node's own items still come back; all children failing degrades to just
- * this node's items rather than failing the whole chunk.
+ * rest — callers should route through `fetchWaqiJson` (one bounded retry)
+ * so transient blips don't become holes. A failing descendant only drops
+ * that subtree — siblings and this node's own items still come back; all
+ * children failing degrades to just this node's items rather than failing
+ * the whole chunk.
  */
 export async function collectChunk(
     box: ViewportBox,

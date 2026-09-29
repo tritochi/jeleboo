@@ -7,8 +7,13 @@
 // PromiseSettledResult entries — same shape as Promise.allSettled, so callers
 // count failures identically.
 
-/** Top-level cells in flight per collection (peak leaf fan-out ≈ limit × 64). */
+/** Top-level cells in flight for interactive viewport queries (peak leaf
+ *  fan-out ≈ limit × 16 at the 7.5° leaf target). */
 export const COLLECT_CONCURRENCY = 8;
+
+/** Gentler batch for the background world crawl — ~1,500 calls per refresh
+ *  against upstream needs pacing, not a burst (see bounds.ts TARGET notes). */
+export const WORLD_COLLECT_CONCURRENCY = 4;
 
 /**
  * Map `fn` over `items` with at most `limit` promises in flight. Never

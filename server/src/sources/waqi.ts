@@ -32,6 +32,57 @@ function isWaqiError(r: any): r is WaqiError {
     return r && typeof r === "object" && r.status === "error";
 }
 
+// ---- Bounded-retry JSON fetch (shared by the bounds collectors) ----
+
+let retryDelayMs = 1000;
+
+/** Test hook — shrink the backoff so retry tests stay fast. */
+export function setWaqiRetryDelayForTests(ms: number): void {
+    retryDelayMs = ms;
+}
+
+/**
+ * GET `url`, retrying once on transient upstream failures (network error,
+ * HTTP 429/5xx, or a non-ok payload) after a short backoff. Deterministic
+ * 4xx (bad token/params) fails immediately — retrying a rejected request
+ * only hammers the upstream. Returns the payload's `data` field; throws the
+ * last error if every attempt failed, preserving the historical error
+ * strings (`WAQI HTTP <status>` / `WAQI upstream error`).
+ *
+ * Why: the bounds collectors make hundreds of calls per refresh, so one
+ * transient blip would otherwise become a silent hole in the station set
+ * (partial sets beat none — but retries beat holes). The `label` is logged
+ * on final failure; the URL is never logged because it carries the token.
+ */
+export async function fetchWaqiJson(url: string, label: string): Promise<unknown> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, retryDelayMs));
+        }
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                lastError = new Error(`WAQI HTTP ${res.status}`);
+                if (res.status !== 429 && res.status < 500) break; // deterministic
+                continue;
+            }
+            const json = (await res.json()) as { status?: unknown; data?: unknown };
+            if (json.status !== "ok") {
+                lastError = new Error("WAQI upstream error");
+                continue;
+            }
+            return json.data;
+        } catch (err) {
+            lastError = err; // network or parse failure — worth one retry
+        }
+    }
+    console.error(
+        `[waqi] ${label} failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+    );
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 /**
  * Parse a raw WAQI API response into a ParsedReading.
  * Returns an error string on failure — never throws.

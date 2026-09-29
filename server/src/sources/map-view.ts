@@ -14,7 +14,7 @@
 // Completeness (Card 21 + its 2026-09-27 audit): a refresh fans the viewport
 // out into ≤30°×30° cells (clamped to the world, antimeridian-wrapped) and
 // collects each through the shared collector — sub-divided on the 1,024 cap
-// OR past the 3.75° leaf target, unioning every node's items (upstream
+// OR past the 7.5° leaf target, unioning every node's items (upstream
 // /map/bounds deterministically under-returns for larger boxes) — so dense
 // regions and wide zooms return every station, never a truncation or a 400.
 //
@@ -25,7 +25,7 @@
 
 import { MALAYSIA_CITY_STATIONS, type CityStation } from "./city-stations";
 import { classifyAqi, type SeverityBand } from "../theme/severity";
-import { fetchByCitySlug, parseWaqiResponse } from "./waqi";
+import { fetchByCitySlug, parseWaqiResponse, fetchWaqiJson } from "./waqi";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
 import { COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
 
@@ -140,7 +140,7 @@ export interface ViewportCollection {
 
 /**
  * Fetch every planned cell through the shared collector (Card 21): each cell
- * sub-divides when it hits WAQI's 1,024-item cap OR exceeds the 3.75° leaf
+ * sub-divides when it hits WAQI's 1,024-item cap OR exceeds the 7.5° leaf
  * target — /map/bounds under-returns for larger boxes even far below the cap
  * (see TARGET_CELL_DEGREES in bounds.ts). Cell failures reject individually —
  * counted here, logged/degraded by the caller (the world-overview pattern:
@@ -214,15 +214,11 @@ const STATION_BY_UID: Map<number, CityStation> = new Map(
 
 async function fetchBounds(v: Viewport, token: string): Promise<RawBoundsItem[]> {
     const url = `${WAQI_BASE}/map/bounds/?token=${encodeURIComponent(token)}&latlng=${v.lat1},${v.lng1},${v.lat2},${v.lng2}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-        throw new Error(`WAQI HTTP ${res.status}`);
-    }
-    const json = (await res.json()) as { status?: unknown; data?: unknown };
-    if (json.status !== "ok" || !Array.isArray(json.data)) {
-        throw new Error("WAQI upstream error");
-    }
-    return json.data as RawBoundsItem[];
+    // One bounded retry inside fetchWaqiJson — a transient blip here would
+    // otherwise show up as a missing cell in the viewport.
+    const data = await fetchWaqiJson(url, "map-view bounds");
+    if (!Array.isArray(data)) throw new Error("WAQI upstream error");
+    return data as RawBoundsItem[];
 }
 
 /**

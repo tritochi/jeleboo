@@ -90,8 +90,8 @@ describe("collectWorldFrom (fake fetch — cap detection, subdivision, partial f
         it("sub-divides a capped cell and keeps all four quadrants' data", async () => {
         const fetched: ViewportBox[] = [];
         let callId = 0;
-        // One chunk whose fetch returns the cap → sub-divided all the way to
-        // 3.75° leaves (sizes: 30° → cap, 15° → 50, else 25).
+        // One chunk whose fetch returns the cap → sub-divided to 7.5° leaves
+        // (sizes: 30° → cap, 15° → 50, 7.5° → 25).
         const result = await collectWorldFrom(
             (box) => {
                 fetched.push(box);
@@ -107,12 +107,12 @@ describe("collectWorldFrom (fake fetch — cap detection, subdivision, partial f
             },
             [{ lat1: 0, lng1: 100, lat2: 30, lng2: 130 }]
         );
-        // depth 0: 1 call (1024 = cap) → sub-divides 30° → 15° → 7.5° →
-        // 3.75°: 1 + 4 + 16 + 64 = 85 calls. Every node's items stay in the
-        // union (1024 + 4×50 + 16×25 + 64×25 = 3,224 uid-unique here), so
-        // neither the truncated root nor any station a child found last is lost.
-        expect(fetched.length).toBe(85);
-        expect(result.totalRaw).toBe(1024 + 4 * 50 + 16 * 25 + 64 * 25);
+        // depth 0: 1 call (1024 = cap) → sub-divides 30° → 15° → 7.5°:
+        // 1 + 4 + 16 = 21 calls. Every node's items stay in the union
+        // (1024 + 4×50 + 16×25 = 1,624 uid-unique here), so neither the
+        // truncated root nor any station a child found last is lost.
+        expect(fetched.length).toBe(21);
+        expect(result.totalRaw).toBe(1024 + 4 * 50 + 16 * 25);
         // Unique names/uids per call → one-per-city keeps them all.
         expect(result.stations.length).toBe(result.totalRaw);
     });

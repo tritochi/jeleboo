@@ -39,8 +39,8 @@ function fakeFetch(fail?: (box: ViewportBox) => boolean) {
 }
 
 describe("TARGET_CELL_DEGREES", () => {
-    it("is a quarter of the 30° grid's 7.5° cap cell — 3.75°", () => {
-        expect(TARGET_CELL_DEGREES).toBe(3.75);
+    it("is a quarter of the 30° base grid — the 7.5° leaf target", () => {
+        expect(TARGET_CELL_DEGREES).toBe(7.5);
     });
 });
 
@@ -48,7 +48,7 @@ describe("collectChunk", () => {
     it("fetches exactly once for a box already at the leaf target", async () => {
         const fetchBox = fakeFetch();
         const out = await collectChunk(
-            { lat1: 0, lng1: 0, lat2: 3, lng2: 3 },
+            { lat1: 0, lng1: 0, lat2: 7.5, lng2: 7.5 },
             0,
             fetchBox
         );
@@ -56,15 +56,15 @@ describe("collectChunk", () => {
         expect(out.length).toBe(1);
     });
 
-    it("fans an oversized box to 3.75° leaves and keeps every node's items", async () => {
+    it("fans an oversized box to 7.5° leaves and keeps every node's items", async () => {
         const fetchBox = fakeFetch();
         const out = await collectChunk(
             { lat1: 0, lng1: 0, lat2: 30, lng2: 30 },
             0,
             fetchBox
         );
-        expect(callCount).toBe(1 + 4 + 16 + 64);
-        expect(out.length).toBe(85); // union, no dedupe inside the collector
+        expect(callCount).toBe(1 + 4 + 16);
+        expect(out.length).toBe(21); // union, no dedupe inside the collector
     });
 
     it("propagates this node's own fetch failure to the caller", async () => {
@@ -98,9 +98,9 @@ describe("collectChunk", () => {
             0,
             fetchBox
         );
-        // root (1) + 3 healthy quadrants × 21 nodes each (15° → 7.5° → 3.75°)
-        expect(out.length).toBe(1 + 3 * 21);
-        expect(callCount).toBe(1 + 1 + 3 * 21); // +1: the failed fetch fired
+        // root (1) + 3 healthy quadrants × 5 nodes each (15° → 4 × 7.5°)
+        expect(out.length).toBe(1 + 3 * 5);
+        expect(callCount).toBe(1 + 1 + 3 * 5); // +1: the failed fetch fired
     });
 
     it("stops at max depth for oversized input the planners shouldn't pass", async () => {
@@ -110,8 +110,10 @@ describe("collectChunk", () => {
             0,
             fetchBox
         );
-        expect(callCount).toBe(85); // 1+4+16+64, recursion bounded at depth 3
-        expect(out.length).toBe(85);
+        // 60° needs three splits to reach 7.5°, but MAX_DEPTH = 2 from the
+        // ≤30° planners — recursion halts at 15° leaves instead of looping.
+        expect(callCount).toBe(1 + 4 + 16);
+        expect(out.length).toBe(21);
     });
 });
 

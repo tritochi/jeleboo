@@ -2,12 +2,13 @@
 // low-fidelity global dataset for zoomed-out map views (< zoom 4), built
 // from chunked /map/bounds queries: the world as 30°×30° cells, sub-divided
 // when a cell returns WAQI's per-request cap (measured: exactly 1,024
-// items) OR is larger than the 3.75° leaf target (bounds.ts — /map/bounds
+// items) OR is larger than the 7.5° leaf target (bounds.ts — /map/bounds
 // deterministically under-returns for bigger boxes), then reduced to one
 // marker per city. Refresh cadence: every WORLD_OVERVIEW_HOURS (default 6) —
 // deliberately hours, not minutes; this is a "something is there" layer, not
-// a live one. ~72 cells × (1+4+16+64) node fetches ≈ ~6,100 upstream calls
-// per cycle, top-level cells batched COLLECT_CONCURRENCY at a time.
+// a live one. ~72 cells × (1+4+16) node fetches ≈ ~1,500 upstream calls per
+// cycle (one bounded retry each — fetchWaqiJson), top-level cells batched
+// WORLD_COLLECT_CONCURRENCY at a time so the crawl paces instead of bursts.
 // In-memory cache, no SQLite (disposable, refetchable data).
 //
 // Explicitly out of scope: any change to the zoom ≥ 4 live viewport queries
@@ -15,7 +16,8 @@
 
 import { normalizeBoundsItem, type MapViewMarker } from "./map-view";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
-import { COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
+import { WORLD_COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
+import { fetchWaqiJson } from "./waqi";
 
 // The shared /map/bounds primitives (cap, grid size, sub-division, collector)
 // moved to ./bounds in Card 21 so map-view can reuse them without a circular
@@ -73,11 +75,11 @@ export interface WorldOverviewResult {
 
 async function fetchChunk(box: ViewportBox, token: string): Promise<MapViewMarker[]> {
     const url = `${WAQI_BASE}/map/bounds/?token=${encodeURIComponent(token)}&latlng=${box.lat1},${box.lng1},${box.lat2},${box.lng2}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`WAQI HTTP ${res.status}`);
-    const json = (await res.json()) as { status?: unknown; data?: unknown };
-    if (json.status !== "ok" || !Array.isArray(json.data)) throw new Error("WAQI upstream error");
-    return (json.data as Parameters<typeof normalizeBoundsItem>[0][])
+    // One bounded retry inside fetchWaqiJson — without it a single blip
+    // anywhere in ~1,500 calls carves a hole into the overview.
+    const data = await fetchWaqiJson(url, "world-overview bounds");
+    if (!Array.isArray(data)) throw new Error("WAQI upstream error");
+    return (data as Parameters<typeof normalizeBoundsItem>[0][])
         .map(normalizeBoundsItem)
         .filter((m): m is MapViewMarker => m !== null);
 }
@@ -99,8 +101,10 @@ export async function collectWorldFrom(
     chunks: ViewportBox[] = worldGrid()
 ): Promise<WorldOverviewResult> {
     // Batched top-level fan-out (bounded sockets), same settled shape as
-    // Promise.allSettled so failure counting is unchanged.
-    const results = await settleWithLimit(chunks, COLLECT_CONCURRENCY, (c) =>
+    // Promise.allSettled so failure counting is unchanged. The world crawl
+    // runs at the gentler WORLD batch — it's background work; pacing beats
+    // bursting when the upstream is rate-sensitive.
+    const results = await settleWithLimit(chunks, WORLD_COLLECT_CONCURRENCY, (c) =>
         collectChunk(c, 0, fetchBox)
     );
     const failedChunks = results.filter((r) => r.status === "rejected").length;
