@@ -152,7 +152,10 @@ async function refresh(token: string): Promise<WorldOverviewResult> {
 
 /**
  * Get the world overview. Fresh cache → serve; stale → serve stale-last-good
- * while a background refresh runs; no cache → block on the full refresh.
+ * while a background refresh runs; no cache → block on the full refresh,
+ * coalescing concurrent cold callers into ONE crawl (deploy-time boot
+ * refresh + a client hit would otherwise run two parallel crawls — doubling
+ * the upstream volume the fan-out calibration exists to control).
  * Throws only when there is no cached set and the refresh fails.
  */
 export async function getWorldOverview(token: string): Promise<WorldOverviewResult> {
@@ -175,8 +178,23 @@ export async function getWorldOverview(token: string): Promise<WorldOverviewResu
         }
         return { ...cache, stale: true };
     }
-    const fresh = await refresh(token);
-    cache = fresh;
+    if (!inflight) {
+        inflight = refresh(token)
+            .then((fresh) => {
+                cache = fresh;
+                return fresh;
+            })
+            .catch((err) => {
+                console.error("[world-overview] cold refresh failed:",
+                    err instanceof Error ? err.message : err);
+                return null;
+            })
+            .finally(() => {
+                inflight = null;
+            });
+    }
+    const fresh = await inflight;
+    if (!fresh) throw new Error("World overview refresh failed");
     return { ...fresh, stale: false };
 }
 

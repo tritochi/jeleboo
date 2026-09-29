@@ -3,16 +3,19 @@
 // (cap detection + sub-division + partial-failure tolerance) with a fake
 // fetch — no network.
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, afterEach, beforeAll } from "bun:test";
 import {
     worldGrid,
     subdivide,
     cityToken,
     dedupeOnePerCity,
             collectWorldFrom,
+    getWorldOverview,
+    resetWorldOverviewForTests,
     BOUNDS_CAP,
     type ViewportBox,
 } from "../src/sources/world-overview";
+import { setWaqiRetryDelayForTests } from "../src/sources/waqi";
 import type { MapViewMarker } from "../src/sources/map-view";
 
 function marker(name: string, uid: number, lastUpdated: string): MapViewMarker {
@@ -140,5 +143,51 @@ describe("collectWorldFrom (fake fetch — cap detection, subdivision, partial f
             ).then((r) => { n = 1; return r; })
         ).rejects.toThrow("Every world chunk failed");
         expect(n).toBe(0);
+    });
+});
+
+describe("getWorldOverview (cold-path coalescing — one crawl per cold wave)", () => {
+    const realFetch = globalThis.fetch;
+
+    beforeAll(() => {
+        setWaqiRetryDelayForTests(5); // failure-path retries run in ms here
+    });
+
+    afterEach(() => {
+        globalThis.fetch = realFetch;
+        resetWorldOverviewForTests();
+    });
+
+    it("serves concurrent cold callers from a single crawl", async () => {
+        resetWorldOverviewForTests();
+        let calls = 0;
+        globalThis.fetch = (async () => {
+            calls += 1;
+            return new Response(JSON.stringify({ status: "ok", data: [] }), {
+                status: 200,
+            });
+        }) as unknown as typeof fetch;
+        const [a, b] = await Promise.all([
+            getWorldOverview("tok"),
+            getWorldOverview("tok"),
+        ]);
+        // 72 grid cells × 21 nodes (30° → 15° → 7.5°) — exactly one crawl;
+        // two parallel crawls would double this and double upstream volume.
+        expect(calls).toBe(72 * 21);
+        expect(a.stations).toBe(b.stations); // same underlying result
+        expect(a.stale).toBe(false);
+        expect(b.stale).toBe(false);
+    });
+
+    it("rejects every concurrent cold caller when the refresh fails", async () => {
+        resetWorldOverviewForTests();
+        globalThis.fetch = (async () => {
+            throw new Error("upstream down");
+        }) as unknown as typeof fetch;
+        const results = await Promise.allSettled([
+            getWorldOverview("tok"),
+            getWorldOverview("tok"),
+        ]);
+        expect(results.map((r) => r.status)).toEqual(["rejected", "rejected"]);
     });
 });
