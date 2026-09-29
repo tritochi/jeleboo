@@ -11,10 +11,12 @@
 //    table-only stations get live AQI via their slugs (the same
 //    /feed/<slug> path the reading fallback uses — Card 10 overlay rules).
 //
-// Completeness (Card 21): a refresh fans the viewport out into ≤30°×30°
-// cells (clamped to the world, antimeridian-wrapped) and collects each
-// through the shared cap-sub-divided bounds collector — dense regions and
-// wide zooms return every station, never a 1,024 truncation or a 400.
+// Completeness (Card 21 + its 2026-09-27 audit): a refresh fans the viewport
+// out into ≤30°×30° cells (clamped to the world, antimeridian-wrapped) and
+// collects each through the shared collector — sub-divided on the 1,024 cap
+// OR past the 3.75° leaf target, unioning every node's items (upstream
+// /map/bounds deterministically under-returns for larger boxes) — so dense
+// regions and wide zooms return every station, never a truncation or a 400.
 //
 // Caching: one refresh per distinct 0.5°-rounded viewport per TTL
 // (MAP_VIEW_CACHE_MINUTES, default 60) — freshness-need grounds, not quota.
@@ -25,6 +27,7 @@ import { MALAYSIA_CITY_STATIONS, type CityStation } from "./city-stations";
 import { classifyAqi, type SeverityBand } from "../theme/severity";
 import { fetchByCitySlug, parseWaqiResponse } from "./waqi";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
+import { COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
 
 const WAQI_BASE = "https://api.waqi.info";
 
@@ -136,19 +139,22 @@ export interface ViewportCollection {
 }
 
 /**
- * Fetch every planned cell through the shared capped collector (Card 21):
- * each cell sub-divides when it hits WAQI's 1,024-item cap. Cell failures
- * reject individually — counted here, logged/degraded by the caller (the
- * world-overview pattern: partial sets beat none). Exported for tests with
- * an injected fetchBox.
+ * Fetch every planned cell through the shared collector (Card 21): each cell
+ * sub-divides when it hits WAQI's 1,024-item cap OR exceeds the 3.75° leaf
+ * target — /map/bounds under-returns for larger boxes even far below the cap
+ * (see TARGET_CELL_DEGREES in bounds.ts). Cell failures reject individually —
+ * counted here, logged/degraded by the caller (the world-overview pattern:
+ * partial sets beat none) — and top-level cells run through settleWithLimit
+ * so a whole-world fan-out can't burst thousands of sockets. Exported for
+ * tests with an injected fetchBox.
  */
 export async function collectViewport(
     v: Viewport,
     fetchBox: (box: ViewportBox) => Promise<MapViewMarker[]>
 ): Promise<ViewportCollection> {
     const cells = planViewportCells(v);
-    const results = await Promise.allSettled(
-        cells.map((c) => collectChunk(c, 0, fetchBox))
+    const results = await settleWithLimit(cells, COLLECT_CONCURRENCY, (c) =>
+        collectChunk(c, 0, fetchBox)
     );
     const failedCells = results.filter((r) => r.status === "rejected").length;
     const markers = results.flatMap((r) =>
@@ -250,8 +256,9 @@ async function fetchTableOnlyStation(t: CityStation, token: string): Promise<Map
 }
 
 async function refreshMapView(v: Viewport, token: string): Promise<MapViewResponse> {
-    // Cell-planned fetch (Card 21): every ≤30° cell, cap-sub-divided, so
-    // wide viewports and dense regions return the complete station set.
+    // Cell-planned fetch (Card 21): every ≤30° cell, sub-divided on the cap
+    // or past 3.75° (leaf cells), so wide viewports and dense regions return
+    // the complete station set — /map/bounds under-returns for bigger boxes.
     const fetchBox = async (box: ViewportBox): Promise<MapViewMarker[]> => {
         const raw = await fetchBounds(box, token);
         return raw

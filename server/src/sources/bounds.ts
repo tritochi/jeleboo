@@ -1,9 +1,9 @@
-// Jeleboo — shared /map/bounds primitives (Card 21): WAQI's per-request
-// result cap, the 30° cell grid, quadrant sub-division, and the depth-capped
-// collector. Extracted from world-overview.ts so map-view's viewport
-// collection uses the exact same rules without a circular import
-// (world-overview already imports map-view for normalizeBoundsItem).
-// Behavior unchanged from Card 18.
+// Jeleboo — shared /map/bounds primitives (Card 21 + its completeness
+// audit): WAQI's per-request result cap, the 30° cell grid, quadrant
+// sub-division, and the depth-capped collector. Extracted from
+// world-overview.ts so map-view's viewport collection uses the exact same
+// rules without a circular import (world-overview already imports map-view
+// for normalizeBoundsItem).
 
 import type { MapViewMarker } from "./map-view";
 
@@ -20,10 +20,27 @@ export const BOUNDS_CAP = 1024;
 /** Base cell size for chunked bounds fetches (world grid + viewport cells). */
 export const CHUNK_DEGREES = 30;
 
-/** Max sub-division depth when a cell returns the cap (smallest cell 7.5°×7.5°). */
-const MAX_DEPTH = 2;
+/**
+ * Leaf-cell size for the collector. Boxes larger than this sub-divide even
+ * when they return far under the cap, because /map/bounds under-returns for
+ * larger boxes in a size-dependent way — measured raw against WAQI
+ * 2026-09-27 (deterministic: repeat calls identical):
+ *   - Delhi 7.5° box → 24 items, its four 3.75° children → 29 union;
+ *   - the same 3.75° box → 20, its four 1.875° children → 21 union;
+ *   - EU 30° box (cap-split path) → 1,366 vs 1,577 across 7.5° cells.
+ * Splitting to CHUNK_DEGREES/8 = 3.75° keeps the measured loss ≤ ~5% while
+ * bounding the leaf fan-out (4³ per 30° cell).
+ */
+export const TARGET_CELL_DEGREES = CHUNK_DEGREES / 8;
 
-/** Split a box into its four quadrants (used when a chunk hits the cap). */
+/**
+ * Max sub-division depth from a ≤30° base cell: 30° → 15° → 7.5° → 3.75°,
+ * i.e. exactly deep enough to reach TARGET_CELL_DEGREES. Doubles as a
+ * recursion guard for any oversized input the planners shouldn't pass.
+ */
+const MAX_DEPTH = 3;
+
+/** Split a box into its four quadrants (halves both edges, stays inside). */
 export function subdivide(box: ViewportBox): ViewportBox[] {
     const midLat = (box.lat1 + box.lat2) / 2;
     const midLng = (box.lng1 + box.lng2) / 2;
@@ -35,14 +52,32 @@ export function subdivide(box: ViewportBox): ViewportBox[] {
     ];
 }
 
+/** True when either edge exceeds the leaf-cell target (callers pre-split
+ *  antimeridian ranges, so lng2 ≥ lng1 for every real cell). */
+function isOversized(box: ViewportBox): boolean {
+    return (
+        box.lat2 - box.lat1 > TARGET_CELL_DEGREES ||
+        box.lng2 - box.lng1 > TARGET_CELL_DEGREES
+    );
+}
+
 /** Injectable fetch: one bounds call for a box, normalized items out. */
 export type FetchBox = (box: ViewportBox) => Promise<MapViewMarker[]>;
 
 /**
- * Collect one chunk, sub-dividing when it returns the cap (recursive,
- * max depth 2 — smallest cell 7.5°×7.5°). `fetchBox` is injectable so
- * tests can fake the cap. Chunk failures throw up to the caller, which
- * records them and keeps the rest (partial sets beat none).
+ * Collect one chunk: fetch this box, then sub-divide when the response hits
+ * WAQI's cap OR the box is larger than TARGET_CELL_DEGREES (recursive, max
+ * depth 3). Ancestor items are kept alongside the descendants' — /map/bounds
+ * station sets differ by box size in BOTH directions (children find stations
+ * the parent omitted, the parent holds stations no child returns), so the
+ * union is the only order-independent answer for "every station".
+ * `fetchBox` is injectable so tests can fake the cap and the size behavior.
+ *
+ * Failure semantics (partial sets beat none): this node's own fetch failing
+ * throws to the caller, which records the failed cell/chunk and keeps the
+ * rest. A failing descendant only drops that subtree — siblings and this
+ * node's own items still come back; all children failing degrades to just
+ * this node's items rather than failing the whole chunk.
  */
 export async function collectChunk(
     box: ViewportBox,
@@ -50,9 +85,14 @@ export async function collectChunk(
     fetchBox: FetchBox
 ): Promise<MapViewMarker[]> {
     const items = await fetchBox(box);
-    if (items.length < BOUNDS_CAP || depth >= MAX_DEPTH) return items;
-    const collected = await Promise.all(
+    const shouldSplit =
+        items.length >= BOUNDS_CAP || isOversized(box);
+    if (!shouldSplit || depth >= MAX_DEPTH) return items;
+    const settled = await Promise.allSettled(
         subdivide(box).map((c) => collectChunk(c, depth + 1, fetchBox))
     );
-    return collected.flat();
+    const descendants = settled.flatMap((r) =>
+        r.status === "fulfilled" ? r.value : []
+    );
+    return [...items, ...descendants];
 }

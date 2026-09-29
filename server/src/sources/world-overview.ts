@@ -2,17 +2,20 @@
 // low-fidelity global dataset for zoomed-out map views (< zoom 4), built
 // from chunked /map/bounds queries: the world as 30°×30° cells, sub-divided
 // when a cell returns WAQI's per-request cap (measured: exactly 1,024
-// items), then reduced to one marker per city. Refresh cadence: every
-// WORLD_OVERVIEW_HOURS (default 6) — deliberately hours, not minutes; this
-// is a "something is there" layer, not a live one. ~72 base calls +
-// sub-divisions ≈ ~100 upstream calls per cycle. In-memory cache, no SQLite
-// (disposable, refetchable data).
+// items) OR is larger than the 3.75° leaf target (bounds.ts — /map/bounds
+// deterministically under-returns for bigger boxes), then reduced to one
+// marker per city. Refresh cadence: every WORLD_OVERVIEW_HOURS (default 6) —
+// deliberately hours, not minutes; this is a "something is there" layer, not
+// a live one. ~72 cells × (1+4+16+64) node fetches ≈ ~6,100 upstream calls
+// per cycle, top-level cells batched COLLECT_CONCURRENCY at a time.
+// In-memory cache, no SQLite (disposable, refetchable data).
 //
 // Explicitly out of scope: any change to the zoom ≥ 4 live viewport queries
 // (they are the confirmed Card 16/17 behavior and are untouched here).
 
 import { normalizeBoundsItem, type MapViewMarker } from "./map-view";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
+import { COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
 
 // The shared /map/bounds primitives (cap, grid size, sub-division, collector)
 // moved to ./bounds in Card 21 so map-view can reuse them without a circular
@@ -60,7 +63,7 @@ export function dedupeOnePerCity(items: MapViewMarker[]): MapViewMarker[] {
 
 export interface WorldOverviewResult {
     stations: MapViewMarker[];
-    /** Pre-dedupe station count — recorded per the addendum. */
+    /** uid-unique pre-city-dedupe station count — recorded per the addendum. */
     totalRaw: number;
     fetchedAt: string;
     failedChunks: number;
@@ -95,18 +98,27 @@ export async function collectWorldFrom(
     fetchBox: (box: ViewportBox) => Promise<MapViewMarker[]>,
     chunks: ViewportBox[] = worldGrid()
 ): Promise<WorldOverviewResult> {
-    const results = await Promise.allSettled(chunks.map((c) => collectChunk(c, 0, fetchBox)));
+    // Batched top-level fan-out (bounded sockets), same settled shape as
+    // Promise.allSettled so failure counting is unchanged.
+    const results = await settleWithLimit(chunks, COLLECT_CONCURRENCY, (c) =>
+        collectChunk(c, 0, fetchBox)
+    );
     const failedChunks = results.filter((r) => r.status === "rejected").length;
     if (failedChunks > 0) {
         console.warn(`[world-overview] ${failedChunks}/${chunks.length} chunks failed this refresh`);
     }
     const raw = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
-    if (raw.length === 0 && failedChunks === chunks.length) {
+    // Leaf + ancestor fetches overlap by construction (union collection) —
+    // count each station once before the city dedupe and for totalRaw.
+    const unique = [...new Map<number, MapViewMarker>(
+        raw.map((m): [number, MapViewMarker] => [m.uid, m])
+    ).values()];
+    if (unique.length === 0 && failedChunks === chunks.length) {
         throw new Error("Every world chunk failed — no overview data available.");
     }
         return {
-        stations: dedupeOnePerCity(raw),
-        totalRaw: raw.length,
+        stations: dedupeOnePerCity(unique),
+        totalRaw: unique.length,
         fetchedAt: new Date().toISOString(),
         failedChunks,
         stale: false,

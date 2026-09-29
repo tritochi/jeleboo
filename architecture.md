@@ -297,7 +297,8 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
    made possible by the same-day Malaysia recheck that proved bounds works
    globally):** the **one-per-major-city heuristic applied over chunked
    `/map/bounds` data**. Chunk the world into 30°×30° cells (72 base cells),
-   sub-divide any cell that returns the per-request cap (see below), and
+   sub-divide any cell that returns the per-request cap **or** exceeds the
+   3.75° leaf target (see below), and
    reduce to **one marker per normalized city name** — exactly the
    one-per-major-city heuristic this task named, but fed by the same working
    API endpoint the zoom ≥ 4 view already uses: real coordinates, live AQI,
@@ -305,12 +306,30 @@ User accounts, payments, admin dashboards, coverage outside Malaysia, a native a
 
 **Real probe numbers (production token, 2026-09-17):** EU 30×30 chunk =
 **1,024** stations — exactly 2^10, treated as WAQI's per-request cap, so
-dense cells are sub-divided into four sub-cells recursively (max depth 2);
-India/SE-Asia 30×30 = 50; US 30×30 = 370. World raw total is therefore in the
-low thousands; after one-per-city dedupe the overview layer lands at an
-estimated **~1,000–1,500 entries** (corroborated by WAQI's own "1,000
-city-level" figure). The exact count is measured at the first full refresh
-and recorded in the implementing card.
+dense cells are sub-divided into four sub-cells recursively (max depth 2 at
+the time — superseded by the audit below); India/SE-Asia 30×30 = 50; US
+30×30 = 370. World raw total is therefore in the low thousands; after
+one-per-city dedupe the overview layer lands at an estimated **~1,000–1,500
+entries** (corroborated by WAQI's own "1,000 city-level" figure). The exact
+count is measured at the first full refresh and recorded in the implementing
+card.
+
+**Completeness audit (raw probes against WAQI, 2026-09-27 — Card 21
+acceptance):** `/map/bounds` under-returns for larger boxes even far below
+the cap, and does so *deterministically* (repeat calls identical): Delhi's
+7.5° box → 24 items while its four 3.75° children union to 29 (3.75° → 20
+vs its 1.875° children → 21); the EU box collects 1,366 on the cap path vs
+1,577 across 7.5° cells. The shared collector therefore sub-divides on cap
+**or box size** down to a 3.75° leaf (max depth 3: 30° → 15° → 7.5° →
+3.75°) and unions *every* node's items — children find stations the parent
+omits, the parent holds stations no child returns — with top-level cells
+batched (`lib/concurrency.ts`) so the fan-out never bursts sockets. Also
+established: Mumbai, Bengaluru, Chennai, Karachi, Cairo, Lagos and Buenos
+Aires stations exist in WAQI's `/search` index but carry **no coordinates
+at all** (and `/map/bounds` + `feed/<uid>` return nothing — Nairobi/Kenya
+box likewise empty), so they are unplaceable by any bounds-based layer and
+are correctly dropped (no coordinates = nowhere to pan) — an upstream data
+limitation, not a Jeleboo gap.
 
 **Refresh cadence: every 6 hours** (`WORLD_OVERVIEW_HOURS` env, default 6, set
 on Railway like `POLL_INTERVAL_MINUTES` + lazy client fetch of
@@ -406,7 +425,11 @@ stable overlay when a uid matches.
   antimeridian, cuts it into ≤30°×30° cells (≤72 worst case), and fetches
   each cell with the same 1,024-cap sub-division the world-overview crawl
   uses — wide or dense viewports return every station instead of 400-ing or
-  truncating, with upstream volume bounded by construction.)*
+  truncating, with upstream volume bounded by construction. Same-day audit
+  addition: sub-division also triggers on **box size** (3.75° leaf target,
+  because upstream under-returns for bigger boxes — see the audit paragraph
+  above), and top-level cells run through a bounded-concurrency settle so a
+  whole-world viewport can't burst sockets.)*
 - **project-brief.md caveats (applied with this confirmation):** the Now
   list's map line and the Non-Goals' "Coverage outside Malaysia" line both
   carry the explore-view exception so the documents agree with this section.
