@@ -1,2 +1,0 @@
-Jeleboo backend listening on http://localhost:3000
-[world-overview] refresh: 24 cities (raw 24, failed chunks 55)
