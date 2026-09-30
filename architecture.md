@@ -329,7 +329,14 @@ carries one bounded retry (`fetchWaqiJson`), because volume is a real
 constraint: a first 3.75°-leaf attempt (~6,100 calls/refresh) tripped
 upstream throttling — whole child generations failed and the overview
 degraded to roots-only (764 raw) — so 3.75° remains a documented future
-lever, not the shipped rule. Also established: Mumbai, Bengaluru, Chennai,
+lever, not the shipped rule. Follow-up hardening (same day, after a root
+429 erased the entire Southeast-Asia chunk — Malaysia/Thailand/Vietnam/
+Singapore — from one cached overview): every WAQI call now takes a paced
+slot (`fetchWaqiJson`, ~20 req/s shared ceiling — unpaced 1,500-call
+crawls drew sustained 429 storms), and `collectChunk` falls back to
+fanning out an oversized box's children when the *root* fetch fails, so a
+single blip can only cost one node, never a region (local re-crawl:
+6,772 stations, 0 failed chunks, 85s). Also established: Mumbai, Bengaluru, Chennai,
 Karachi, Cairo, Lagos and Buenos Aires stations exist in WAQI's `/search`
 index but carry **no coordinates at all** (and `/map/bounds` +
 `feed/<uid>` return nothing — Nairobi/Kenya box likewise empty), so they

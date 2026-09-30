@@ -67,18 +67,39 @@ describe("collectChunk", () => {
         expect(out.length).toBe(21); // union, no dedupe inside the collector
     });
 
-    it("propagates this node's own fetch failure to the caller", async () => {
+    it("rejects when the root AND every descendant fail (nowhere to fall back to)", async () => {
         const fetchBox = fakeFetch(() => true);
         await expect(
             collectChunk({ lat1: 0, lng1: 0, lat2: 30, lng2: 30 }, 0, fetchBox)
         ).rejects.toThrow("fetch down");
     });
 
-    it("returns this node's own items when every child fetch fails", async () => {
-        // Children fail at their own fetch (depth ≥ 1) — the root succeeded,
-        // so partial data beats none: the chunk is not lost.
+    it("still fans out when an oversized box's root fetch fails but children succeed", async () => {
+        // The incident this guards: a root 429 wiped the whole
+        // Southeast-Asia chunk from the overview — the box is split-capable,
+        // so the children must collect even when the root contributed nothing.
+        const fetchBox = fakeFetch((box) => box.lat2 - box.lat1 === 30); // only the root
+        const out = await collectChunk(
+            { lat1: 0, lng1: 0, lat2: 30, lng2: 30 },
+            0,
+            fetchBox
+        );
+        expect(out.length).toBe(4 * 5); // 4 quadrants × 5 nodes each
+        expect(callCount).toBe(1 + 4 * 5); // 1 failed root attempt + children
+    });
+
+    it("a failed root on a box with nothing to split still rejects", async () => {
+        const fetchBox = fakeFetch((box) => box.lat2 - box.lat1 <= 7.5);
+        await expect(
+            collectChunk({ lat1: 0, lng1: 0, lat2: 5, lng2: 5 }, 0, fetchBox)
+        ).rejects.toThrow("fetch down");
+    });
+
+    it("returns this node's own items when every descendant fetch fails", async () => {
+        // Only the root box is fetchable; children AND grandchildren fail,
+        // so there is nothing to fall back to beyond this node's items.
         const fetchBox = fakeFetch(
-            (box) => box.lat2 - box.lat1 === 15 // every depth-1 child
+            (box) => box.lat2 - box.lat1 !== 30 // everything except the root
         );
         const out = await collectChunk(
             { lat1: 0, lng1: 0, lat2: 30, lng2: 30 },
@@ -86,21 +107,24 @@ describe("collectChunk", () => {
             fetchBox
         );
         expect(out.length).toBe(1); // just the root's item
-        expect(callCount).toBe(1 + 4); // root + 4 failing children, no deeper
+        expect(callCount).toBe(1 + 4 + 16); // root + failed children + failed leaves
     });
 
     it("drops only the failing subtree, keeping siblings and the root", async () => {
         const fetchBox = fakeFetch(
-            (box) => box.lat1 === 15 && box.lng1 === 0 // one depth-1 quadrant
+            (box) => box.lat1 === 15 && box.lng1 === 0 // one quadrant root + its NW child
         );
         const out = await collectChunk(
             { lat1: 0, lng1: 0, lat2: 30, lng2: 30 },
             0,
             fetchBox
         );
-        // root (1) + 3 healthy quadrants × 5 nodes each (15° → 4 × 7.5°)
-        expect(out.length).toBe(1 + 3 * 5);
-        expect(callCount).toBe(1 + 1 + 3 * 5); // +1: the failed fetch fired
+        // The failed quadrant root falls back to ITS children: 3 of 4 survive
+        // (the matching NW leaf still dies) → more data than pre-fallback.
+        // root (1) + 3 healthy quadrants × 5 nodes + 3 recovered = 19
+        expect(out.length).toBe(1 + 3 * 5 + 3);
+        // root + healthy(3×5) + failed quadrant (root + 4 leaf attempts)
+        expect(callCount).toBe(1 + 3 * 5 + 1 + 4);
     });
 
     it("stops at max depth for oversized input the planners shouldn't pass", async () => {

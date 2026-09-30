@@ -76,26 +76,40 @@ export type FetchBox = (box: ViewportBox) => Promise<MapViewMarker[]>;
  * union is the only order-independent answer for "every station".
  * `fetchBox` is injectable so tests can fake the cap and the size behavior.
  *
- * Failure semantics (partial sets beat none): this node's own fetch failing
- * throws to the caller, which records the failed cell/chunk and keeps the
- * rest — callers should route through `fetchWaqiJson` (one bounded retry)
- * so transient blips don't become holes. A failing descendant only drops
- * that subtree — siblings and this node's own items still come back; all
- * children failing degrades to just this node's items rather than failing
- * the whole chunk.
+ * Failure semantics (partial sets beat none): a *split-capable* box whose
+ * own fetch fails still fans out to its children — one root blip must not
+ * erase a whole region (measured 2026-09-30: a root 429 wiped the entire
+ * Southeast-Asia chunk from the overview for a full cache TTL). The chunk
+ * is only counted failed when there is nowhere left to fall back to: a
+ * leaf box's fetch failing, or every descendant also failing after a root
+ * failure. Callers should route through `fetchWaqiJson` (paced + one
+ * bounded retry) so transient blips rarely reach here at all.
  */
 export async function collectChunk(
     box: ViewportBox,
     depth: number,
     fetchBox: FetchBox
 ): Promise<MapViewMarker[]> {
-    const items = await fetchBox(box);
+    let items: MapViewMarker[];
+    let rootError: unknown = null;
+    try {
+        items = await fetchBox(box);
+    } catch (err) {
+        rootError = err;
+        items = [];
+    }
     const shouldSplit =
         items.length >= BOUNDS_CAP || isOversized(box);
-    if (!shouldSplit || depth >= MAX_DEPTH) return items;
+    if (!shouldSplit || depth >= MAX_DEPTH) {
+        if (rootError) throw rootError; // nowhere left to fall back to
+        return items;
+    }
     const settled = await Promise.allSettled(
         subdivide(box).map((c) => collectChunk(c, depth + 1, fetchBox))
     );
+    if (rootError && settled.every((r) => r.status === "rejected")) {
+        throw rootError; // root AND every child failed — count the chunk
+    }
     const descendants = settled.flatMap((r) =>
         r.status === "fulfilled" ? r.value : []
     );

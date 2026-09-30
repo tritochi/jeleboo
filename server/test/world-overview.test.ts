@@ -15,7 +15,7 @@ import {
     BOUNDS_CAP,
     type ViewportBox,
 } from "../src/sources/world-overview";
-import { setWaqiRetryDelayForTests } from "../src/sources/waqi";
+import { setWaqiRetryDelayForTests, setWaqiPaceIntervalForTests } from "../src/sources/waqi";
 import type { MapViewMarker } from "../src/sources/map-view";
 
 function marker(name: string, uid: number, lastUpdated: string): MapViewMarker {
@@ -151,6 +151,7 @@ describe("getWorldOverview (cold-path coalescing — one crawl per cold wave)", 
 
     beforeAll(() => {
         setWaqiRetryDelayForTests(5); // failure-path retries run in ms here
+        setWaqiPaceIntervalForTests(0); // the 1,512-call crawl must not sleep
     });
 
     afterEach(() => {

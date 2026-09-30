@@ -324,13 +324,17 @@ describe("collectViewport (Card 21 — cell fetch, cap sub-division, failures)",
     });
 
     it("counts cell failures without losing the cells that succeeded", async () => {
-        let n = 0;
         const result = await collectViewport(
             { lat1: 0, lng1: -60, lat2: 60, lng2: 60 }, // 8 cells
-            async () => {
-                const i = n++;
-                if (i === 0) throw new Error("upstream hiccup");
-                return [marker(i)];
+            async (box) => {
+                // Kill the ENTIRE first cell (root + every descendant): a
+                // single root blip no longer fails a cell (root-fallback),
+                // so total failure has to cover the whole subtree.
+                const inCell0 =
+                    box.lat1 >= 0 && box.lat2 <= 30 &&
+                    box.lng1 >= -60 && box.lng2 <= -30;
+                if (inCell0) throw new Error("upstream hiccup");
+                return [marker(1)];
             }
         );
         expect(result.cellCount).toBe(8);

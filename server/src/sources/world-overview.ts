@@ -7,8 +7,10 @@
 // marker per city. Refresh cadence: every WORLD_OVERVIEW_HOURS (default 6) —
 // deliberately hours, not minutes; this is a "something is there" layer, not
 // a live one. ~72 cells × (1+4+16) node fetches ≈ ~1,500 upstream calls per
-// cycle (one bounded retry each — fetchWaqiJson), top-level cells batched
-// WORLD_COLLECT_CONCURRENCY at a time so the crawl paces instead of bursts.
+// cycle through fetchWaqiJson — paced to ~20 req/s (measured 2026-09-30:
+// ~90s crawl, 6,772 stations, 0 failed chunks; unpaced runs drew 429 storms
+// that killed whole chunks) — top-level cells batched
+// WORLD_COLLECT_CONCURRENCY at a time.
 // In-memory cache, no SQLite (disposable, refetchable data).
 //
 // Explicitly out of scope: any change to the zoom ≥ 4 live viewport queries

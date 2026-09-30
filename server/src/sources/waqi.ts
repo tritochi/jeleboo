@@ -32,13 +32,35 @@ function isWaqiError(r: any): r is WaqiError {
     return r && typeof r === "object" && r.status === "error";
 }
 
-// ---- Bounded-retry JSON fetch (shared by the bounds collectors) ----
+// ---- Bounded-retry + paced JSON fetch (shared by the bounds collectors) ----
 
 let retryDelayMs = 1000;
+// Slot spacing between WAQI calls: ~20 req/s ceiling. Measured 2026-09-30:
+// a 1,500-call world refresh at ~33/s with 64-way bursts drew sustained
+// HTTP 429 storms (hundreds per crawl; one root 429 killed the entire
+// Southeast-Asia chunk), while historical ~20/s crawls ran clean. Every
+// caller shares one slot timeline, so concurrency can fan out without
+// bursting past the upstream's appetite.
+let paceIntervalMs = 50;
+let nextSlotAt = 0;
 
 /** Test hook — shrink the backoff so retry tests stay fast. */
 export function setWaqiRetryDelayForTests(ms: number): void {
     retryDelayMs = ms;
+}
+
+/** Test hook — zero (or widen) the global request pacing in tests. */
+export function setWaqiPaceIntervalForTests(ms: number): void {
+    paceIntervalMs = ms;
+    nextSlotAt = 0;
+}
+
+/** Reserve the next global request slot; waits if callers got ahead. */
+async function pace(): Promise<void> {
+    const now = Date.now();
+    const at = Math.max(now, nextSlotAt);
+    nextSlotAt = at + paceIntervalMs;
+    if (at > now) await new Promise((r) => setTimeout(r, at - now));
 }
 
 /**
@@ -49,10 +71,11 @@ export function setWaqiRetryDelayForTests(ms: number): void {
  * last error if every attempt failed, preserving the historical error
  * strings (`WAQI HTTP <status>` / `WAQI upstream error`).
  *
- * Why: the bounds collectors make hundreds of calls per refresh, so one
+ * Why: the bounds collectors fire hundreds of calls per refresh, so one
  * transient blip would otherwise become a silent hole in the station set
- * (partial sets beat none — but retries beat holes). The `label` is logged
- * on final failure; the URL is never logged because it carries the token.
+ * (partial sets beat none — but retries beat holes). Every attempt first
+ * takes a paced slot (see above). The `label` is logged on final failure;
+ * the URL is never logged because it carries the token.
  */
 export async function fetchWaqiJson(url: string, label: string): Promise<unknown> {
     let lastError: unknown;
@@ -60,6 +83,7 @@ export async function fetchWaqiJson(url: string, label: string): Promise<unknown
         if (attempt > 0) {
             await new Promise((r) => setTimeout(r, retryDelayMs));
         }
+        await pace();
         try {
             const res = await fetch(url);
             if (!res.ok) {

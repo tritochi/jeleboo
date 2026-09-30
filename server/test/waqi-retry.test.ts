@@ -3,12 +3,17 @@
 // otherwise become a silent hole in the station set.
 
 import { describe, it, expect, afterEach, beforeAll } from "bun:test";
-import { fetchWaqiJson, setWaqiRetryDelayForTests } from "../src/sources/waqi";
+import {
+    fetchWaqiJson,
+    setWaqiRetryDelayForTests,
+    setWaqiPaceIntervalForTests,
+} from "../src/sources/waqi";
 
 const realFetch = globalThis.fetch;
 
 beforeAll(() => {
     setWaqiRetryDelayForTests(5); // backoff measured in ms, not seconds, here
+    setWaqiPaceIntervalForTests(0); // pacing has its own dedicated test below
 });
 
 afterEach(() => {
@@ -95,5 +100,25 @@ describe("fetchWaqiJson (bounded retry)", () => {
             "ok-after-blip"
         );
         expect(calls).toBe(2);
+    });
+
+    it("spaces requests through the shared pace slot (no bursts)", async () => {
+        setWaqiPaceIntervalForTests(40);
+        try {
+            let calls = 0;
+            stubFetch(async () => {
+                calls += 1;
+                return fakeResponse(200, { status: "ok", data: calls });
+            });
+            const t0 = Date.now();
+            await fetchWaqiJson("https://example.test/bounds", "test"); // slot now
+            await fetchWaqiJson("https://example.test/bounds", "test"); // +40ms
+            await fetchWaqiJson("https://example.test/bounds", "test"); // +80ms
+            const elapsed = Date.now() - t0;
+            expect(calls).toBe(3);
+            expect(elapsed).toBeGreaterThanOrEqual(60); // two gaps of 40ms
+        } finally {
+            setWaqiPaceIntervalForTests(0);
+        }
     });
 });
