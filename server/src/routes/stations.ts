@@ -8,7 +8,11 @@ import { Router } from "express";
 import { getWaqiToken } from "../sources/waqi";
 import { getStationSet } from "../sources/stations";
 import { makeRateLimiter } from "../lib/rate-limit";
-import { buildSearchSuggestions } from "../sources/stations";
+import {
+    buildSearchSuggestions,
+    MAX_SEARCH_SUGGESTIONS,
+} from "../sources/stations";
+import { enrichStaleSuggestions } from "../sources/stale-stations";
 
 const router = Router();
 
@@ -75,9 +79,23 @@ router.get("/search", async (req, res) => {
         }
         // Worldwide normalize + coordinate-less rows dropped + capped at 20
         // (Card 21) — WAQI relevance order preserved.
-        const results = buildSearchSuggestions(
-            json.data as Parameters<typeof buildSearchSuggestions>[0]
-        ).map((m) => ({ name: m.name, aqi: m.aqi, lat: m.lat, lng: m.lng, uid: m.uid }));
+        const rows = json.data as Parameters<typeof buildSearchSuggestions>[0];
+        const live = buildSearchSuggestions(rows);
+        // Stale-network enrichment (builder decision 2026-09-30): rows WAQI
+        // marks aqi:"-" but with coordinates resolve through /feed — the
+        // last-known reading with its real date — appended after live hits
+        // so current readings always lead.
+        const stale = live.length < MAX_SEARCH_SUGGESTIONS
+            ? await enrichStaleSuggestions(rows, token, MAX_SEARCH_SUGGESTIONS - live.length)
+            : [];
+        const results = [...live, ...stale].map((m) => ({
+            name: m.name,
+            aqi: m.aqi,
+            lat: m.lat,
+            lng: m.lng,
+            uid: m.uid,
+            lastUpdated: m.lastUpdated,
+        }));
         res.json({ results });
     } catch (err) {
         console.error("[search] failed:", err instanceof Error ? err.message : err);

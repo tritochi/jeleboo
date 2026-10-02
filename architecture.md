@@ -344,6 +344,27 @@ are unplaceable by any bounds-based layer and are correctly dropped (no
 coordinates = nowhere to pan) — an upstream data limitation, not a Jeleboo
 gap.
 
+**Stale-network stations (builder decision 2026-09-30 — "mix of 1 and 2":**
+show them everywhere, but never as if current): some WAQI networks are
+fully catalogued — `/search` lists them with coordinates — yet every row
+reports `aqi: "-"`, so bounds/geo indexes exclude them (Philippines: 20
+stations, Brunei: 4; feeds return only last-known readings: Manila
+Feb-2026, Brunei 2026-09-07). `sources/stale-stations.ts` builds a registry
+by sweeping `/search` with a static ISO-country keyword list (227 keywords —
+stable reference data, not a hand-maintained station list) and resolving
+each coordinate-bearing row: live rows become markers directly, `aqi:"-"`
+rows resolve through `/feed/<station-url>` for the last-known value **and
+its real timestamp**. The registry (measured: 1,800 coordinate rows, 459
+feed-resolved, 1,661 markers) merges into all three layers — search
+suggestions (after live hits, response now carries `lastUpdated`), viewport
+pins (box containment, lowest merge priority so live values win on uid), and
+the world overview (before the newest-wins city dedupe) — on the existing
+`WORLD_OVERVIEW_HOURS` cadence with stale-last-good caching and coalesced
+refreshes; map viewports read it through a non-blocking peek so panning
+never waits on the sweep. The app's station card formats the age in tiers
+(`formatAge`: min → h → d → months), so an 8-month-old reading says "8
+months ago" — honesty is the "1" half of the decision; coverage is the "2".
+
 **Refresh cadence: every 6 hours** (`WORLD_OVERVIEW_HOURS` env, default 6, set
 on Railway like `POLL_INTERVAL_MINUTES` + lazy client fetch of
 `GET /api/world-overview` from the server's in-memory cache — same

@@ -20,6 +20,7 @@ import { normalizeBoundsItem, type MapViewMarker } from "./map-view";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
 import { WORLD_COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
 import { fetchWaqiJson } from "./waqi";
+import { getStaleStations } from "./stale-stations";
 
 // The shared /map/bounds primitives (cap, grid size, sub-division, collector)
 // moved to ./bounds in Card 21 so map-view can reuse them without a circular
@@ -147,9 +148,19 @@ function isStale(set: WorldOverviewResult): boolean {
 }
 
 async function refresh(token: string): Promise<WorldOverviewResult> {
-    const fresh = await collectWorld(token);
-    console.log(`[world-overview] refresh: ${fresh.stations.length} cities (raw ${fresh.totalRaw}, failed chunks ${fresh.failedChunks})`);
-    return { ...fresh, stale: false };
+    // Registry sweep runs IN PARALLEL with the bounds crawl (coalesced,
+    // never throws) — dark-network dots (Philippines, Brunei, …) join the
+    // one-per-city set; newest-wins dedupe keeps live entries as the
+    // representatives when a uid/city appears in both.
+    const [fresh, staleStations] = await Promise.all([
+        collectWorld(token),
+        getStaleStations(token),
+    ]);
+    console.log(`[world-overview] refresh: ${fresh.stations.length} cities (raw ${fresh.totalRaw}, failed chunks ${fresh.failedChunks}, stale-registry ${staleStations.length})`);
+    const stations = staleStations.length > 0
+        ? dedupeOnePerCity([...fresh.stations, ...staleStations])
+        : fresh.stations;
+    return { ...fresh, stations, stale: false };
 }
 
 /**

@@ -60,6 +60,23 @@ export function minutesAgo(iso: string): number {
     return Math.max(0, Math.round((Date.now() - then) / 60000));
 }
 
+/**
+ * Humanized age for the station card's "Last updated" line. Tiered so a
+ * stale-network reading shows honestly (\"8 months ago\", not a raw minute
+ * count) — builder decision 2026-09-30: old readings may be shown, but
+ * never as if they were current.
+ */
+export function formatAge(iso: string): string {
+    const mins = minutesAgo(iso);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins} min ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 60) return `${days}d ago`;
+    return `${Math.floor(days / 30)} months ago`;
+}
+
 export function useStations(trigger = 0) {
     const [state, setState] = useState<StationsState>(() => {
         const cached = readCache();
@@ -114,6 +131,8 @@ export interface SearchResult {
     lat: number;
     lng: number;
     uid: number;
+    /** Measurement time — carries the true age of stale-network readings. */
+    lastUpdated: string;
 }
 
 /** Debounced worldwide place suggestions from the backend (Card 11 route; worldwide since Card 21). */

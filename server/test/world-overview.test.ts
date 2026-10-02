@@ -16,6 +16,10 @@ import {
     type ViewportBox,
 } from "../src/sources/world-overview";
 import { setWaqiRetryDelayForTests, setWaqiPaceIntervalForTests } from "../src/sources/waqi";
+import {
+    resetStaleStationsForTests,
+    COUNTRY_KEYWORDS,
+} from "../src/sources/stale-stations";
 import type { MapViewMarker } from "../src/sources/map-view";
 
 function marker(name: string, uid: number, lastUpdated: string): MapViewMarker {
@@ -157,10 +161,12 @@ describe("getWorldOverview (cold-path coalescing — one crawl per cold wave)", 
     afterEach(() => {
         globalThis.fetch = realFetch;
         resetWorldOverviewForTests();
+        resetStaleStationsForTests(); // the refresh() path sweeps the registry too
     });
 
     it("serves concurrent cold callers from a single crawl", async () => {
         resetWorldOverviewForTests();
+        resetStaleStationsForTests();
         let calls = 0;
         globalThis.fetch = (async () => {
             calls += 1;
@@ -172,9 +178,11 @@ describe("getWorldOverview (cold-path coalescing — one crawl per cold wave)", 
             getWorldOverview("tok"),
             getWorldOverview("tok"),
         ]);
-        // 72 grid cells × 21 nodes (30° → 15° → 7.5°) — exactly one crawl;
-        // two parallel crawls would double this and double upstream volume.
-        expect(calls).toBe(72 * 21);
+        // One crawl: 72 grid cells × 21 nodes (30° → 15° → 7.5°) — plus ONE
+        // coalesced stale-registry sweep (COUNTRY_KEYWORDS search calls, no
+        // feed rows because every stubbed response is empty). Two parallel
+        // crawls would double either number and double upstream volume.
+        expect(calls).toBe(72 * 21 + COUNTRY_KEYWORDS.length);
         expect(a.stations).toBe(b.stations); // same underlying result
         expect(a.stale).toBe(false);
         expect(b.stale).toBe(false);

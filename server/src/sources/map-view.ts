@@ -28,6 +28,7 @@ import { classifyAqi, type SeverityBand } from "../theme/severity";
 import { fetchByCitySlug, parseWaqiResponse, fetchWaqiJson } from "./waqi";
 import { CHUNK_DEGREES, collectChunk, type ViewportBox } from "./bounds";
 import { COLLECT_CONCURRENCY, settleWithLimit } from "../lib/concurrency";
+import { peekStaleStations, markersInBox } from "./stale-stations";
 
 const WAQI_BASE = "https://api.waqi.info";
 
@@ -285,11 +286,16 @@ async function refreshMapView(v: Viewport, token: string): Promise<MapViewRespon
         console.warn(`[map-view] ${failedExtras} table-only slug feeds failed this refresh`);
     }
 
+    // Stale-registry hits (builder decision 2026-09-30): dark-network
+    // stations (e.g. Philippines/Brunei) whose coordinates fall inside this
+    // box. Lowest merge priority — any bounds/table/live value wins on uid.
+    const registryHits = markersInBox(peekStaleStations(), v);
+
     // World portion = everything bounds returned that is not MY-selected;
     // MY portion = union markers + slug-fetched table-only extras.
     const world = all.filter((m) => !isMalaysiaName(m.name));
     const byUid = new Map<number, MapViewMarker>();
-    for (const m of [...world, ...myMarkers, ...extraMarkers]) {
+    for (const m of [...registryHits, ...world, ...myMarkers, ...extraMarkers]) {
         byUid.set(m.uid, m); // uid dedupe across the union
     }
 

@@ -14,6 +14,7 @@ import mapViewRoutes from "./routes/map-view";
 import worldOverviewRoutes from "./routes/world-overview";
 import { startPollScheduler } from "./jobs/poll";
 import { startWorldOverviewScheduler } from "./sources/world-overview";
+import { startStaleStationScheduler } from "./sources/stale-stations";
 
 // Load server/.env.local if present — Bun does not auto-load .env files.
 function loadEnvLocal() {
@@ -112,10 +113,12 @@ export function startServer(port?: number) {
     }
     // World overview warm-up (Card 18): only when the host opts in
     // (WORLD_OVERVIEW_HOURS, e.g. 6 on Railway). Local dev relies on the
-    // lazy first-fetch instead.
+    // lazy first-fetch instead. The stale-station registry (dark-network
+    // dots — builder 2026-09-30) rides the same env/cadence: no new config.
     const worldHours = Number(process.env.WORLD_OVERVIEW_HOURS);
     if (Number.isFinite(worldHours) && worldHours >= 1) {
         startWorldOverviewScheduler(Math.round(worldHours));
+        startStaleStationScheduler(Math.round(worldHours));
     }
     return app.listen(p, () => {
         // eslint-disable-next-line no-console

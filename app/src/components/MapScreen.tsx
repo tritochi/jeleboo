@@ -12,6 +12,7 @@ import "leaflet/dist/leaflet.css";
 import {
     usePlaceSearch,
     minutesAgo,
+    formatAge,
     type StationMarker,
     type SearchResult,
 } from "../hooks/useStations";
@@ -180,6 +181,9 @@ interface Selected {
     lng: number;
     aqi: number | null;
     uid: number | null;
+    /** Measurement time when known — search results and stale-network pins
+     *  carry their true date even when the station isn't in either set. */
+    lastUpdated: string | null;
 }
 
 export default function MapScreen({ onBack }: { onBack: () => void }) {
@@ -214,13 +218,13 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
     function selectResult(r: SearchResult) {
         // Viewing-only per design.md: pan + info card. Never writes threshold,
         // recorded location, or notification settings.
-        setSelected({ name: r.name, lat: r.lat, lng: r.lng, aqi: r.aqi, uid: r.uid });
+        setSelected({ name: r.name, lat: r.lat, lng: r.lng, aqi: r.aqi, uid: r.uid, lastUpdated: r.lastUpdated ?? null });
         setFlyTarget({ lat: r.lat, lng: r.lng });
         setQuery("");
     }
 
     function selectStation(m: StationMarker) {
-        setSelected({ name: m.name, lat: m.lat, lng: m.lng, aqi: m.aqi, uid: m.uid });
+        setSelected({ name: m.name, lat: m.lat, lng: m.lng, aqi: m.aqi, uid: m.uid, lastUpdated: m.lastUpdated });
     }
 
     function selectOverview(m: OverviewMarker) {
@@ -230,6 +234,7 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
             lng: m.lng,
             aqi: m.aqi,
             uid: m.uid,
+            lastUpdated: m.lastUpdated,
         });
     }
 
@@ -406,19 +411,21 @@ export default function MapScreen({ onBack }: { onBack: () => void }) {
                         <p className="map-card-label">No current reading</p>
                     )}
                     <p className="map-card-meta">Source: WAQI</p>
-                    {selected.uid !== null && (set || overview.set) ? (
-                        (() => {
-                            const uid = selected.uid;
-                            const m =
-                                set?.stations.find((s) => s.uid === uid) ??
-                                overview.set?.stations.find((s) => s.uid === uid);
-                            return m ? (
-                                <p className="map-card-meta">
-                                    Last updated {minutesAgo(m.lastUpdated)} min ago
-                                </p>
-                            ) : null;
-                        })()
-                    ) : null}
+                    {(() => {
+                        const uid = selected.uid;
+                        const inSet =
+                            uid !== null
+                                ? set?.stations.find((s) => s.uid === uid) ??
+                                  overview.set?.stations.find((s) => s.uid === uid)
+                                : undefined;
+                        // Live set entry wins (freshest); otherwise the date
+                        // the selection came with — stale-network readings
+                        // must show their true age (builder 2026-09-30).
+                        const iso = inSet?.lastUpdated ?? selected.lastUpdated;
+                        return iso ? (
+                            <p className="map-card-meta">Last updated {formatAge(iso)}</p>
+                        ) : null;
+                    })()}
                 </div>
             ) : null}
 
