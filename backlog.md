@@ -8,15 +8,10 @@ Format per item: `- [size guess] Description (how it was noticed)`
 
 ### [small] — likely one Work Card each, no architecture pass
 
-- [small] App icon badge showing the AQI category via the Badging API (`navigator.setAppBadge(aqi)`, cleared when unreadable/offline) — frontend-only; badge platforms vary, so the card covers graceful no-op where unsupported (builder QoL brainstorm, post-ship)
-- [small] Web Share API "share this reading" button — frontend-only; platform-aware like `InstallPrompt`: hide where `navigator.share` is missing rather than showing a dead button (builder QoL brainstorm, post-ship)
-- [small] Settings-portability URL — encode the current threshold into a shareable link (`?threshold=NN` read on load, pre-filling the setter); **threshold only** — no saved locations yet, see Blocked (builder QoL brainstorm, post-ship)
-- [small] Public `/status` page — backend up, last poll X min ago, WAQI reachable. Checked: **no last-poll field exists anywhere** (`readings.recorded_at` is the upstream measurement time, not poll time), so the card adds a small poll-time field (kv/meta row or column) plus the route (builder QoL brainstorm + code check)
-- [small] Good-day microcopy variation (e.g. "clear enough to open the windows today") instead of a bare green Good number — copy-only, no new logic, must keep design.md's calm tone (builder QoL brainstorm, post-ship)
+_(empty as of 2026-10-02 — all five promoted as Cards 22–26, see Promoted)_
 
 ### [medium] — additive to schema/logic; short spec line before the card, no architecture pass
 
-- [medium] Dominant pollutant shown in the UI — **checked: not a pure display change.** WAQI's `dominentpol` field is neither fetched (`parseWaqiResponse` never reads it) nor stored (`readings` has no column), so the card adds parser support + a `readings.dominant_pollutant` column (migration) + route/UI passthrough (builder QoL brainstorm + code check)
 - [medium] Trend-aware early warning using existing `readings` history — the window and slope threshold that count as "climbing fast" are defined **in the card**, not while building (builder QoL brainstorm, post-ship)
 - [medium] Snooze/mute notifications for a set period — needs a `muted_until`-style `devices` field; card defines the allowed durations and where the control lives (builder QoL brainstorm, post-ship)
 
@@ -38,6 +33,13 @@ Format per item: `- [size guess] Description (how it was noticed)`
 - [L] Post-v1: migrate the backend from Bun + Express + SQLite to Supabase (Postgres + Edge Functions + `pg_cron`) — storage, routes, the poll job, Web Push dispatch, and the server tests all need rework; revisit `architecture.md` as a structural change before any code (noticed during Card 08 host planning — builder chose Supabase but deferred it to ship v1 on the current stack first)
 
 ## Promoted
+
+- [small] → `work-cards/22-app-icon-badge.md` — Badging API AQI badge (`setAppBadge(aqi)`, clear on unreadable/offline, no-op where unsupported) (promoted 2026-10-02 — builder backlog pick "1–4", stream 1; build order 22 → 26)
+- [small] → `work-cards/23-web-share-reading.md` — Web Share "Share this reading" control, hidden where `navigator.share` is missing (promoted 2026-10-02 — builder backlog pick "1–4", stream 1)
+- [small] → `work-cards/24-threshold-share-url.md` — `?threshold=NN` read on load, pre-fills (never auto-saves) the setter, param stripped after consume; threshold only (promoted 2026-10-02 — builder backlog pick "1–4", stream 1)
+- [small] → `work-cards/25-status-page.md` — public `/status` + `/status.json` (server up, last poll time/outcome from a new `meta` row written by the poll job, WAQI state from the last poll — no live probing) (promoted 2026-10-02 — builder backlog pick "1–4", stream 1; includes the code-checked poll-time field)
+- [small] → `work-cards/26-good-day-microcopy.md` — one calm Good-only line ("Clear enough to open the windows today."), fresh readings only (promoted 2026-10-02 — builder backlog pick "1–4", stream 1)
+- [medium] → `work-cards/27-dominant-pollutant.md` — parser reads `dominentpol`, `readings.dominant_pollutant` column (guarded migration), route passthrough, muted UI line; spec line lives in the card (promoted 2026-10-02 — builder backlog pick "1–4", stream 2)
 
 - [medium] → `work-cards/21-worldwide-station-coverage.md` — worldwide suggestions (`/api/search` no longer MY-only, cap 20, drop coordinate-less rows), cap-subdivided map-view collection shared with the world-overview crawl, and the ≤30°/side viewport reject replaced by clamped/wrapped ≤30° cell planning so wide zoom-4–6 viewports return every station instead of 400-ing (promoted 2026-09-27 — direct builder directive, not a queued backlog pick)
 

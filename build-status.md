@@ -6,8 +6,8 @@
 - Build shape: Live-Data App
 - Shape confirmation: Confirmed
 - Current KDBM stage: **Shipped** (iterating)
-- Current phase: Iterate — Card 21 shipped (`ed7b524`) + live-verified; builder device check pending
-- Current work card: `work-cards/21-worldwide-station-coverage.md` (shipped 2026-09-27; awaiting builder device check)
+- Current phase: Iterate — backlog pick "1–4" approved 2026-10-02: stream 1 = small QoL batch (Cards 22–26), stream 2 = dominant pollutant (Card 27), stream 3 = architecture draft for sign-off (forecast + comparison), stream 4 = bilingual scope pass
+- Current work card: `work-cards/22-app-icon-badge.md` (Open — next to build; then 23 → 24 → 25 → 26 → 27)
 
 ## Completed work cards
 
