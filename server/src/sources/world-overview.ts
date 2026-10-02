@@ -147,6 +147,23 @@ function isStale(set: WorldOverviewResult): boolean {
     return !Number.isFinite(t) || Date.now() - t > ttlMs();
 }
 
+/**
+ * Merge the stale registry into the bounds-derived city set: uid-first
+ * (the same station can carry different names in bounds vs search — WAQI
+ * prefixes fuzzy keywords, e.g. "albania; Albany County HD" — bounds' name
+ * wins), then the one-per-city dedupe (newest wins, so live entries stay
+ * the city representatives). Pure and unit-tested.
+ */
+export function mergeStaleIntoOverview(
+    boundsStations: MapViewMarker[],
+    staleStations: readonly MapViewMarker[]
+): MapViewMarker[] {
+    if (staleStations.length === 0) return boundsStations;
+    const byUid = new Map<number, MapViewMarker>();
+    for (const m of [...staleStations, ...boundsStations]) byUid.set(m.uid, m);
+    return dedupeOnePerCity([...byUid.values()]);
+}
+
 async function refresh(token: string): Promise<WorldOverviewResult> {
     // Registry sweep runs IN PARALLEL with the bounds crawl (coalesced,
     // never throws) — dark-network dots (Philippines, Brunei, …) join the
@@ -157,10 +174,11 @@ async function refresh(token: string): Promise<WorldOverviewResult> {
         getStaleStations(token),
     ]);
     console.log(`[world-overview] refresh: ${fresh.stations.length} cities (raw ${fresh.totalRaw}, failed chunks ${fresh.failedChunks}, stale-registry ${staleStations.length})`);
-    const stations = staleStations.length > 0
-        ? dedupeOnePerCity([...fresh.stations, ...staleStations])
-        : fresh.stations;
-    return { ...fresh, stations, stale: false };
+    return {
+        ...fresh,
+        stations: mergeStaleIntoOverview(fresh.stations, staleStations),
+        stale: false,
+    };
 }
 
 /**

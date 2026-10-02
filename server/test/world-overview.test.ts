@@ -11,6 +11,7 @@ import {
     dedupeOnePerCity,
             collectWorldFrom,
     getWorldOverview,
+    mergeStaleIntoOverview,
     resetWorldOverviewForTests,
     BOUNDS_CAP,
     type ViewportBox,
@@ -147,6 +148,28 @@ describe("collectWorldFrom (fake fetch — cap detection, subdivision, partial f
             ).then((r) => { n = 1; return r; })
         ).rejects.toThrow("Every world chunk failed");
         expect(n).toBe(0);
+    });
+});
+
+describe("mergeStaleIntoOverview (uid-first before city dedupe)", () => {
+    it("keeps ONE entry per uid, preferring the bounds name over search's keyword prefix", () => {
+        const bounds = [marker("Albany County HD, New York, USA", 5100, "2026-10-02T00:00:00Z")];
+        const stale = [marker("albania; Albany County HD, New York, USA", 5100, "2026-06-01T00:00:00Z")];
+        const out = mergeStaleIntoOverview(bounds, stale);
+        expect(out.length).toBe(1);
+        expect(out[0].name).toBe("Albany County HD, New York, USA"); // bounds wins
+        expect(out[0].lastUpdated).toBe("2026-10-02T00:00:00Z"); // live wins
+    });
+
+    it("adds stale-only stations and passes bounds through untouched when no stale set", () => {
+        const bounds = [marker("Kuala Lumpur, Malaysia", 1, "2026-10-02T00:00:00Z")];
+        const stale = [marker("Manila US Embassy, Philippines", 14893, "2026-02-06T00:00:00Z")];
+        const out = mergeStaleIntoOverview(bounds, stale);
+        expect(out.map((m) => m.name).sort()).toEqual([
+            "Kuala Lumpur, Malaysia",
+            "Manila US Embassy, Philippines",
+        ]);
+        expect(mergeStaleIntoOverview(bounds, [])).toBe(bounds); // identity kept
     });
 });
 
