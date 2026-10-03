@@ -8,7 +8,7 @@
 - Current KDBM stage: **Shipped** (iterating)
 - ⚠️ **Security incident (2026-10-02) — ACTION REQUIRED (builder):** commit `3b15890` accidentally swept in `server/jeleboo.zip` + an extracted `server/server/` copy via `git add -A`; **the zip contains `server/.env.local` (WAQI token + VAPID keypair + subject email) and this repo is PUBLIC**, so the credentials are treated as exposed. Contained in `5fc3b49` (removed from HEAD; `.gitignore` now blocks `*.zip` and `server/server/`), but **still present in git history**. Builder must: **(1) regenerate the WAQI token** (aqicn.org) and update `server/.env.local` + the Railway env, **(2) regenerate the VAPID pair** (`web-push`) and update both envs (existing push subscriptions will need re-enabling), **(3) optionally** purge history with `git filter-repo` after rotation. Bundle origin unknown (it carried a Dockerfile — likely a local deploy experiment); artifacts recoverable from `3b15890` if needed — never re-add them.
 - Current phase: Iterate — backlog pick "1–4" approved 2026-10-02: stream 1 = small QoL batch (Cards 22–26), stream 2 = dominant pollutant (Card 27), stream 3 = architecture draft for sign-off (forecast + comparison), stream 4 = bilingual scope pass
-- Current work card: `work-cards/24-threshold-share-url.md` (Open — next to build; then 25 → 26 → 27)
+- Current work card: `work-cards/25-status-page.md` (Open — next to build; then 26 → 27)
 
 ## Completed work cards
 

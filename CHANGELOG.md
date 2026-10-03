@@ -157,3 +157,9 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   simply doesn't appear). One tap opens the native share sheet with the AQI,
   band label, station, and how old the reading is; viewing-only, and a
   dismissed sheet is never an error.
+- **Card 24 — portable threshold links:** a Jeleboo link like
+  `?threshold=150` now pre-fills the alert-threshold input on the device that
+  opens it — never saving anything on its own (the device's own threshold
+  stays until its user presses Save), and the link cleans itself out of the
+  address bar afterwards. Out-of-range or malformed values are ignored
+  quietly.

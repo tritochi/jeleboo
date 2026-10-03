@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Open — promoted 2026-10-02 (builder backlog pick "1–4", stream 1; build order 22 → 23 → 24 → 25 → 26, then 27)
+Done — shipped 2026-10-02 (range shares MIN/MAX with the setter; fractional values rejected whole; app tests 28/28, tsc clean, build clean, CI green); live check pending at `?threshold=150`
 
 ## Why
 

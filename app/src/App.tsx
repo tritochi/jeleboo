@@ -3,6 +3,7 @@
 
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useReading } from "./hooks/useReading";
+import { readThresholdParam, consumeThresholdParam } from "./lib/thresholdUrl";
 import { ReadingCard, LoadingCard, ErrorCard } from "./components/ReadingCard";
 import { ThresholdSetter, getDeviceId } from "./components/ThresholdSetter";
 import { QuietHoursSetter } from "./components/QuietHoursSetter";
@@ -31,6 +32,25 @@ function App() {
     const { status, reading, error, station_changed } = useReading(retry);
     const [offline, setOffline] = useState(!navigator.onLine);
     const [threshold, setThreshold] = useState<number | null>(null);
+    // Card 24 — settings portability: `?threshold=NN` pre-fills the setter
+    // once on load (never auto-saved), then leaves the address bar.
+    const [sharedThreshold] = useState<number | null>(() =>
+        typeof window === "undefined"
+            ? null
+            : readThresholdParam(window.location.search)
+    );
+    useEffect(() => {
+        if (sharedThreshold === null) return;
+        try {
+            window.history.replaceState(
+                null,
+                "",
+                consumeThresholdParam(window.location.href)
+            );
+        } catch {
+            // history quirks (sandboxed iframes) — pre-fill still happened
+        }
+    }, [sharedThreshold]);
     // Map & Station Explorer is a second screen (design.md) — swapping views
     // keeps the home screen's single-reading focus untouched.
     const [view, setView] = useState<"home" | "map">("home");
@@ -185,7 +205,7 @@ function App() {
                     </summary>
                     <ThresholdSetter
                         deviceId={DEVICE_ID}
-                        initialThreshold={threshold}
+                        initialThreshold={sharedThreshold ?? threshold}
                         onSaved={handleSaved}
                     />
 

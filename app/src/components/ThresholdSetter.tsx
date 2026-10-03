@@ -5,8 +5,10 @@
 import { useEffect, useState } from "react";
 
 const BACKEND = (import.meta.env.VITE_BACKEND_URL as string) ?? "";
-const MIN_THRESHOLD = 0;
-const MAX_THRESHOLD = 500;
+// Exported for the settings-portability URL (Card 24) so the share-link
+// validation can never drift from what save() accepts.
+export const MIN_THRESHOLD = 0;
+export const MAX_THRESHOLD = 500;
 
 interface ThresholdSetterProps {
     deviceId: string;
