@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Open — promoted 2026-10-02 (builder backlog pick "1–4", stream 1; build order 22 → 23 → 24 → 25 → 26, then 27)
+Done — shipped 2026-10-02 (design.md bullet added first; app tests 24/24, tsc clean, build clean, CI green); builder device check pending (share sheet needs a supporting platform)
 
 ## Why
 

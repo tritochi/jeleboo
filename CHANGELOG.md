@@ -152,3 +152,8 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   the reading can't be refreshed or read — an old number never claims to be
   today's air. Platforms without the API are untouched (no dead prompts, no
   errors).
+- **Card 23 — share this reading:** a "Share this reading" button on the
+  reading card (only where the browser can actually share — elsewhere it
+  simply doesn't appear). One tap opens the native share sheet with the AQI,
+  band label, station, and how old the reading is; viewing-only, and a
+  dismissed sheet is never an error.

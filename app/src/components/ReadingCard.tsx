@@ -5,14 +5,19 @@
 import { SeverityBadge } from "./SeverityBadge";
 import { SourceLine } from "./SourceLine";
 import { classifyAqi } from "../theme/severity";
+import { buildSharePayload, canShareReading } from "../lib/shareReading";
 import type { Reading } from "../hooks/useReading";
 
 interface ReadingCardProps {
     reading: Reading;
+    /** Card 23/26: true only for a fresh, non-fallback reading — the share
+     *  control and the Good-day line both depend on it. */
+    fresh?: boolean;
 }
 
-export function ReadingCard({ reading }: ReadingCardProps) {
+export function ReadingCard({ reading, fresh = false }: ReadingCardProps) {
     const severity = classifyAqi(reading.aqi_value);
+    const showShare = fresh && canShareReading();
 
     return (
         <section className="reading-card" aria-live="polite">
@@ -37,6 +42,19 @@ export function ReadingCard({ reading }: ReadingCardProps) {
                     <span className="reading-via"> · via nearby city station</span>
                 ) : null}
             </p>
+
+            {showShare ? (
+                <button
+                    type="button"
+                    className="reading-share"
+                    onClick={() => {
+                        // A dismissed share sheet (AbortError) is not an error.
+                        void navigator.share(buildSharePayload(reading)).catch(() => {});
+                    }}
+                >
+                    Share this reading
+                </button>
+            ) : null}
         </section>
     );
 }

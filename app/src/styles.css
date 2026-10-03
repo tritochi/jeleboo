@@ -161,6 +161,28 @@ body {
     font-size: 0.85rem;
 }
 
+/* Card 23 — share control: secondary text button inside the card. */
+.reading-share {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0 0;
+    background: none;
+    border: none;
+    border-top: 1px solid #E5E2DA;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.9375rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.reading-share:hover,
+.reading-share:focus-visible {
+    text-decoration: underline;
+}
+
 .reading-via {
     color: var(--text-muted);
     font-style: italic;

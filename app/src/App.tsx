@@ -142,7 +142,7 @@ function App() {
                     <LoadingCard />
                 ) : status === "ready" && reading ? (
                     <>
-                        <ReadingCard reading={reading} />
+                        <ReadingCard reading={reading} fresh={error === null && !offline} />
                         {station_changed ? (
                             <p className="station-changed" role="status">
                                 Location updated — now showing {reading.station_name}
