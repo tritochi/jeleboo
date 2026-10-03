@@ -43,3 +43,6 @@ gh-auth*.log
 test-server*.log
 *.err.log
 *.log
+# Local packaging artifacts: never commit zip files (jeleboo.zip once carried .env.local)
+*.zip
+server/server/
