@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Open — promoted 2026-10-02 (builder backlog pick "1–4", stream 1; build order 22 → 23 → 24 → 25 → 26, then 27)
+Done — shipped 2026-10-02 (app tests 21/21, tsc clean, build clean, CI green); builder device check pending (badge visibility needs a supporting platform; the no-op path is unit-covered)
 
 ## Why
 

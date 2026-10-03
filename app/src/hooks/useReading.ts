@@ -3,6 +3,7 @@
 // server-side. This hook only talks to the local backend.
 
 import { useEffect, useState } from "react";
+import { applyAppBadge, navigatorBadge } from "../lib/appBadge";
 
 const BACKEND = (import.meta.env.VITE_BACKEND_URL as string) ?? "";
 
@@ -98,6 +99,9 @@ export function useReading(trigger = 0) {
 
             if (lat === null || lng === null) {
                 if (cancelled) return;
+                // Card 22: showing cached/absent state — badge clears so an
+                // old number never claims to be today's air.
+                void applyAppBadge(navigatorBadge(), null);
                 setState((prev) => ({
                     status: prev.reading ? "ready" : "error",
                     reading: prev.reading,
@@ -118,9 +122,11 @@ export function useReading(trigger = 0) {
                 const previous = readCache();
                 const changed = stationChanged(previous?.station_name, data.station_name);
                 writeCache(data);
+                void applyAppBadge(navigatorBadge(), data.aqi_value); // Card 22
                 setState({ status: "ready", reading: data, error: null, station_changed: changed });
             } catch {
                 if (cancelled) return;
+                void applyAppBadge(navigatorBadge(), null); // Card 22: unreadable
                 // Network/upstream failure: fall back to the last known reading
                 // and its age, never a blank or broken screen.
                 setState((prev) => ({

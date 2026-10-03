@@ -147,3 +147,8 @@ All notable changes to Jeleboo are documented here, in plain language rather tha
   India, east China) used to be silently cut off at 1,024 stations per query
   — both fixed by fetching the view in bounded cells and sub-dividing the
   crowded ones.
+- **Card 22 â€” app icon badge:** the home-screen icon now shows the current
+  AQI number (where the platform supports app badges), and clears it whenever
+  the reading canât be refreshed or read â€” an old number never claims to be
+  today's air. Platforms without the API are untouched (no dead prompts, no
+  errors).
